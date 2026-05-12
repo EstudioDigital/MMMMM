@@ -1,10 +1,12 @@
-// Servidor Fastify: webhook Meta, procesamiento asíncrono y health check
+// Servidor Fastify: webhook Meta, procesamiento asíncrono, panel API y Socket.io
 
 import Fastify from 'fastify';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
+import { Server as SocketIO } from 'socket.io';
 import { brain } from './brain/index.js';
 import { sendWhatsAppMessage } from './utils/whatsapp.js';
+import panelRoutes from './routes/panel.js';
 
 const prisma = new PrismaClient();
 
@@ -19,6 +21,19 @@ const fastify = Fastify({
     : { level: process.env.LOG_LEVEL ?? 'info' },
 });
 
+// Socket.io — attached to Fastify's underlying HTTP server
+const io = new SocketIO(fastify.server, {
+  cors: {
+    origin: process.env.PANEL_URL ?? 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+  },
+});
+
+io.on('connection', (socket) => {
+  fastify.log.info(`Panel conectado via Socket.io [${socket.id}]`);
+  socket.on('disconnect', () => fastify.log.info(`Panel desconectado [${socket.id}]`));
+});
+
 // Parser que conserva rawBody para verificar firma HMAC de Meta
 fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
   try {
@@ -28,6 +43,9 @@ fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, bo
     done(err);
   }
 });
+
+// Panel API routes
+fastify.register(panelRoutes);
 
 // Verificación del webhook de Meta (GET)
 fastify.get('/webhook', (request, reply) => {
@@ -42,13 +60,13 @@ fastify.get('/webhook', (request, reply) => {
 // Recepción de mensajes de Meta (POST) — responde 200 inmediatamente
 fastify.post('/webhook', (request, reply) => {
   if (APP_SECRET) {
-  try {
-    verifyMetaSignature(request);
-  } catch (err) {
-    fastify.log.warn(`Firma inválida: ${err.message}`);
-    return reply.code(401).send('Unauthorized');
+    try {
+      verifyMetaSignature(request);
+    } catch (err) {
+      fastify.log.warn(`Firma inválida: ${err.message}`);
+      return reply.code(401).send('Unauthorized');
+    }
   }
-}
 
   reply.code(200).send('EVENT_RECEIVED');
   setImmediate(() => processWebhook(request.body).catch((err) => {
@@ -147,8 +165,16 @@ async function processMessage(msg, phoneNumberId, contacts) {
 
   fastify.log.info({ from: senderPhone, body: savedMsg.body }, 'Mensaje recibido');
 
+  // Notificar al panel en tiempo real
+  io.emit('new_message', {
+    accountId: account.id,
+    message: savedMsg,
+    client: { id: client_.id, name: client_.name, phone: client_.phone },
+  });
+
   // 4. Decidir respuesta con el motor de decisión
   const response = await brain(savedMsg, account, client_);
+  fastify.log.info({ response }, 'Respuesta generada por el brain');
 
   // 5. Enviar respuesta por WhatsApp
   const sent = await sendWhatsAppMessage({
