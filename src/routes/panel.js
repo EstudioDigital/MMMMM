@@ -185,4 +185,28 @@ export default async function panelRoutes(fastify) {
       update: { active },
     });
   });
+
+  // ── Verify WhatsApp connection ─────────────────────────────────────────────
+  fastify.post('/api/accounts/:id/verify-whatsapp', async (req, reply) => {
+    const { phoneNumberId, waToken } = req.body ?? {};
+    if (!phoneNumberId || !waToken) {
+      return reply.code(400).send({ success: false, error: 'Faltan credenciales' });
+    }
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v19.0/${phoneNumberId}`,
+        { headers: { Authorization: `Bearer ${waToken}` } },
+      );
+      if (!res.ok) {
+        return reply.send({ success: false, error: 'Token inválido o Phone Number ID incorrecto' });
+      }
+      await prisma.account.update({
+        where: { id: req.params.id },
+        data: { phoneNumberId, waToken },
+      });
+      return reply.send({ success: true });
+    } catch {
+      return reply.send({ success: false, error: 'No se pudo conectar con la API de Meta' });
+    }
+  });
 }
