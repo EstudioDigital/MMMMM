@@ -42,13 +42,13 @@ fastify.get('/webhook', (request, reply) => {
 // Recepción de mensajes de Meta (POST) — responde 200 inmediatamente
 fastify.post('/webhook', (request, reply) => {
   if (APP_SECRET) {
-    try {
-      verifyMetaSignature(request);
-    } catch (err) {
-      fastify.log.warn(`Firma inválida: ${err.message}`);
-      return reply.code(401).send('Unauthorized');
-    }
+  try {
+    verifyMetaSignature(request);
+  } catch (err) {
+    fastify.log.warn(`Firma inválida: ${err.message}`);
+    return reply.code(401).send('Unauthorized');
   }
+}
 
   reply.code(200).send('EVENT_RECEIVED');
   setImmediate(() => processWebhook(request.body).catch((err) => {
@@ -154,7 +154,7 @@ async function processMessage(msg, phoneNumberId, contacts) {
   const sent = await sendWhatsAppMessage({
     to: senderPhone,
     phoneNumberId: account.phoneNumberId,
-    token: account.waToken,
+    token: account.waToken || process.env.META_ACCESS_TOKEN,
     message: response,
   });
 

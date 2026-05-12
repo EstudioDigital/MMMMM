@@ -1,83 +1,66 @@
-// Genera respuestas usando Claude Haiku cuando ninguna regla ni módulo aplica
+import OpenAI from 'openai'
 
-import Anthropic from '@anthropic-ai/sdk';
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = 'claude-haiku-4-5-20251001';
-const MAX_TOKENS = 300;
+/**
+ * Nivel 3 del brain — Respuesta con IA (GPT-4o mini)
+ *
+ * Solo se activa cuando ninguna regla ni módulo respondió.
+ * Usa el contexto del negocio para generar respuestas coherentes.
+ *
+ * Costo: ~$0.00015 por 1k tokens input, $0.0006 output
+ * Latencia: ~400ms — perfecto para WhatsApp
+ */
+export async function aiResponse(message, account, client, history = []) {
+  const systemPrompt = buildSystemPrompt(account, client)
+  const messages     = buildMessages(message, history, systemPrompt)
 
-const FALLBACK = 'Recibimos tu mensaje, te respondemos a la brevedad.';
-
-/** Construye el system prompt con la personalidad y contexto del negocio */
-function buildSystemPrompt(account, client_) {
-  const toneMap = {
-    formal: 'Usá un tono profesional y respetuoso.',
-    friendly: 'Usá un tono amigable y cercano.',
-    casual: 'Usá un tono informal y distendido.',
-    technical: 'Usá un tono técnico y preciso.',
-  };
-
-  const tone = toneMap[account.tone] ?? toneMap.friendly;
-
-  let prompt = `Sos el asistente virtual de "${account.name}".
-${tone}
-Hablá siempre en español rioplatense: vos, tenés, podés, querés.
-Respondé en máximo 3 oraciones. No uses markdown, listas ni emojis.
-`;
-
-  if (account.businessInfo) {
-    prompt += `\nInformación del negocio: ${account.businessInfo}`;
-  }
-
-  if (account.faq) {
-    prompt += `\nPreguntas frecuentes: ${account.faq}`;
-  }
-
-  if (account.catalog) {
-    prompt += `\nCatálogo disponible: ${account.catalog}`;
-  }
-
-  if (client_?.name) {
-    prompt += `\nEstás hablando con ${client_.name}.`;
-  }
-
-  return prompt;
-}
-
-/** Convierte el historial de mensajes al formato messages de Anthropic */
-function buildMessages(currentMessage, history) {
-  const messages = [];
-
-  for (const msg of history) {
-    if (!msg.body) continue;
-    messages.push({
-      role: msg.direction === 'in' ? 'user' : 'assistant',
-      content: msg.body,
-    });
-  }
-
-  messages.push({ role: 'user', content: currentMessage.body ?? '' });
-
-  return messages;
-}
-
-/** Llama a Claude Haiku y retorna la respuesta en texto plano */
-export async function aiResponse(message, account, client_, history = []) {
   try {
-    const systemPrompt = buildSystemPrompt(account, client_);
-    const messages = buildMessages(message, history);
-
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      system: systemPrompt,
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 300,  // respuestas cortas para WhatsApp
+      temperature: 0.7, // naturalidad sin volverse impredecible
       messages,
-    });
+    })
 
-    const text = response.content?.[0]?.text?.trim();
-    return text || FALLBACK;
+    const text = response.choices[0]?.message?.content?.trim()
+    if (!text) return null
+
+    return { type: 'text', body: text }
+
   } catch (err) {
-    console.error('[ai] Error llamando a Claude:', err.message);
-    return FALLBACK;
+    console.error('[AI] Error llamando a GPT-4o mini:', err.message)
+    // Fallback si la IA falla — nunca dejar al cliente sin respuesta
+    return {
+      type: 'text',
+      body: `Hola${client.name ? `, ${client.name}` : ''}! Recibimos tu mensaje. Te respondemos a la brevedad.`,
+    }
   }
+}
+
+// ─── Constructor del historial para OpenAI ────────────────────────────────────
+// OpenAI recibe el system prompt como primer mensaje del array
+
+function buildMessages(currentMessage, history, systemPrompt) {
+  const messages = [
+    { role: 'system', content: systemPrompt }
+  ]
+
+  // Historial reciente en orden cronológico (más viejo primero)
+  const sorted = [...history].reverse()
+  for (const h of sorted) {
+    if (!h.body || h.body.startsWith('[')) continue
+    messages.push({
+      role: h.direction === 'in' ? 'user' : 'assistant',
+      content: h.body,
+    })
+  }
+
+  // Mensaje actual
+  messages.push({
+    role: 'user',
+    content: currentMessage.body || '',
+  })
+
+  return messages
 }

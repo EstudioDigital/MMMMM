@@ -1,7 +1,9 @@
 {
-  "name": "mate-bot",
+  "name": "nomi-bot",
   "version": "1.0.0",
+  "description": "El socio digital de tu negocio por WhatsApp",
   "type": "module",
+  "main": "src/server.js",
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
@@ -10,9 +12,11 @@
     "db:generate": "prisma generate"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.24.0",
     "@prisma/client": "^5.14.0",
-    "fastify": "^4.27.0"
+    "bullmq": "^5.8.0",
+    "fastify": "^4.27.0",
+    "ioredis": "^5.3.2",
+    "openai": "^4.104.0"
   },
   "devDependencies": {
     "pino-pretty": "^11.0.0",
