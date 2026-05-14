@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, X } from 'lucide-react'
+import { MagnifyingGlass, X } from '@phosphor-icons/react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useStore } from '../store.js'
 import { getClients, getClientMessages } from '../api/client.js'
 
 export default function Clients() {
+  useEffect(() => { document.title = 'Clientes — MateBot' }, [])
   const account = useStore((s) => s.account)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
@@ -37,7 +38,7 @@ export default function Clients() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-text-primary">Clientes ({clients.length})</h2>
         <div className="relative">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+          <MagnifyingGlass size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}

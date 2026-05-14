@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check } from 'lucide-react'
+import { CheckCircle } from '@phosphor-icons/react'
 
 const industries = [
   {
@@ -166,7 +166,7 @@ export default function Industries() {
               {industry.bullets.map((b, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-[#25D366]/15 border border-[#25D366]/25 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check size={12} className="text-[#25D366]" />
+                    <CheckCircle size={12} weight="fill" color="#25D366" />
                   </div>
                   <p className="text-white text-sm leading-relaxed">{b}</p>
                 </div>

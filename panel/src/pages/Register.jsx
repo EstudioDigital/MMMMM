@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, MessageCircle, Loader2, Check } from 'lucide-react'
+import { Eye, EyeSlash, SpinnerGap, Check } from '@phosphor-icons/react'
+import logo from '../assets/logo.png'
 import { useAuthStore } from '../store/authStore.js'
 
 export default function Register() {
+  useEffect(() => { document.title = 'Crear cuenta — MateBot' }, [])
   const navigate = useNavigate()
   const register = useAuthStore((s) => s.register)
   const isLoading = useAuthStore((s) => s.isLoading)
@@ -39,9 +41,7 @@ export default function Register() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-[#25D366] flex items-center justify-center mb-4">
-            <MessageCircle size={24} className="text-white" />
-          </div>
+          <img src={logo} alt="MateBot" className="w-16 h-16 object-contain mb-4" />
           <h1 className="text-xl font-semibold text-[#e2e8f0]">Crear cuenta gratis</h1>
           <p className="text-[#64748b] text-sm mt-1">14 días de prueba sin tarjeta</p>
         </div>
@@ -91,7 +91,7 @@ export default function Register() {
                   onClick={() => setShowPass((v) => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] hover:text-[#e2e8f0] transition-colors"
                 >
-                  {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  {showPass ? <EyeSlash size={15} /> : <Eye size={15} />}
                 </button>
               </div>
               {form.password && (
@@ -146,7 +146,7 @@ export default function Register() {
               disabled={isLoading}
               className="bg-[#25D366] hover:bg-[#20c05a] disabled:opacity-60 text-black font-semibold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 mt-1"
             >
-              {isLoading && <Loader2 size={15} className="animate-spin" />}
+              {isLoading && <SpinnerGap size={15} weight="bold" className="animate-spin" />}
               {isLoading ? 'Creando cuenta...' : 'Crear cuenta gratis'}
             </button>
           </form>

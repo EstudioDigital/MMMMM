@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MessageCircle, Loader2, Check, ChevronRight, ExternalLink } from 'lucide-react'
+import { SpinnerGap, Check, ArrowRight, ArrowSquareOut } from '@phosphor-icons/react'
+import logo from '../assets/logo.png'
 import { useAuthStore } from '../store/authStore.js'
 import api, { setupAccount } from '../api/client.js'
 
@@ -150,7 +151,7 @@ function Step1({ data, onChange, onNext }) {
         disabled={!data.name}
         className="bg-[#25D366] hover:bg-[#20c05a] disabled:opacity-50 text-black font-semibold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 mt-2"
       >
-        Continuar <ChevronRight size={16} />
+        Continuar <ArrowRight size={16} />
       </button>
     </div>
   )
@@ -206,7 +207,7 @@ function Step2({ data, onChange, onNext, onBack, loading, error }) {
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-xs text-[#25D366] hover:underline mt-1"
         >
-          Ir a Meta Developers <ExternalLink size={11} />
+          Ir a Meta Developers <ArrowSquareOut size={11} />
         </a>
       </div>
 
@@ -239,7 +240,7 @@ function Step2({ data, onChange, onNext, onBack, loading, error }) {
           disabled={testing}
           className="flex items-center gap-2 text-sm text-[#64748b] hover:text-[#25D366] border border-[#2a2d3e] hover:border-[#25D366]/40 rounded-lg px-4 py-2.5 transition-colors w-fit"
         >
-          {testing && <Loader2 size={13} className="animate-spin" />}
+          {testing && <SpinnerGap size={13} weight="bold" className="animate-spin" />}
           {testing ? 'Verificando...' : 'Verificar conexión'}
         </button>
       )}
@@ -270,7 +271,7 @@ function Step2({ data, onChange, onNext, onBack, loading, error }) {
           disabled={!data.phoneNumberId || !data.waToken || loading}
           className="flex-1 bg-[#25D366] hover:bg-[#20c05a] disabled:opacity-50 text-black font-semibold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
         >
-          {loading && <Loader2 size={14} className="animate-spin" />}
+          {loading && <SpinnerGap size={14} weight="bold" className="animate-spin" />}
           {loading ? 'Configurando...' : 'Configurar bot'}
         </button>
       </div>
@@ -344,12 +345,9 @@ function Step3({ onNext, onBack }) {
 function Step4({ onFinish }) {
   return (
     <div className="flex flex-col items-center gap-6 py-4 text-center">
-      <div className="relative">
-        <div className="w-20 h-20 rounded-full bg-[#25D366]/15 border-2 border-[#25D366]/30 flex items-center justify-center animate-pulse">
-          <div className="w-14 h-14 rounded-full bg-[#25D366]/20 border-2 border-[#25D366] flex items-center justify-center">
-            <span className="text-3xl">🧉</span>
-          </div>
-        </div>
+      <div className="relative flex items-center justify-center">
+        <div className="absolute w-24 h-24 rounded-full bg-[#25D366]/15 border-2 border-[#25D366]/30 animate-pulse" />
+        <img src={logo} alt="MateBot" className="w-20 h-20 object-contain relative z-10 animate-mate-walk" />
       </div>
 
       <div>
@@ -381,6 +379,7 @@ function Step4({ onFinish }) {
 
 // ── Componente principal ───────────────────────────────────────────────────────
 export default function Onboarding() {
+  useEffect(() => { document.title = 'Configuración inicial — MateBot' }, [])
   const navigate = useNavigate()
   const updateUser = useAuthStore((s) => s.updateUser)
 
@@ -428,9 +427,7 @@ export default function Onboarding() {
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-8 h-8 rounded-lg bg-[#25D366] flex items-center justify-center">
-            <MessageCircle size={16} className="text-white" />
-          </div>
+          <img src={logo} alt="MateBot" className="w-8 h-8 object-contain animate-mate-walk" />
           <span className="text-white font-semibold">MateBot</span>
         </div>
 

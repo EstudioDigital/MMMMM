@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.production
+dist/
+.prisma/
+*.log
+
+panel/node_modules/
+panel/dist/
+panel/.env
+panel/.env.production
+
+landing/node_modules/
+landing/dist/
+landing/.env
+landing/.env.production

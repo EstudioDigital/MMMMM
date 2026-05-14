@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Layout } from './components/Layout.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
+import LoadingScreen from './components/LoadingScreen.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Catalog from './pages/Catalog.jsx'
 import Appointments from './pages/Appointments.jsx'
@@ -13,6 +14,7 @@ import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import ForgotPassword from './pages/ForgotPassword.jsx'
 import Onboarding from './pages/Onboarding.jsx'
+import NotFound from './pages/NotFound.jsx'
 import { getAccount } from './api/client.js'
 import { useStore } from './store.js'
 import { useAuthStore } from './store/authStore.js'
@@ -35,6 +37,10 @@ function AccountLoader() {
 }
 
 export default function App() {
+  const hydrated = useAuthStore((s) => s._hasHydrated ?? true)
+
+  if (!hydrated) return <LoadingScreen />
+
   return (
     <BrowserRouter>
       <Routes>
@@ -55,6 +61,9 @@ export default function App() {
             <Route path="settings"     element={<Settings />} />
           </Route>
         </Route>
+
+        {/* 404 catch-all */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )

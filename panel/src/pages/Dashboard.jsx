@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { MessageSquare, Users, Calendar, DollarSign } from 'lucide-react'
+import { ChatCircle, UserPlus, CalendarCheck, CurrencyDollar } from '@phosphor-icons/react'
 import { StatCard } from '../components/StatCard.jsx'
 import { ConversationList } from '../components/ConversationList.jsx'
 import { ChatWindow } from '../components/ChatWindow.jsx'
@@ -13,6 +13,7 @@ function fmtARS(n) {
 }
 
 export default function Dashboard() {
+  useEffect(() => { document.title = 'Dashboard — MateBot' }, [])
   const account = useStore((s) => s.account)
   const [selectedClient, setSelectedClient] = useState(null)
   const qc = useQueryClient()
@@ -58,10 +59,10 @@ export default function Dashboard() {
     <div className="space-y-5 h-full flex flex-col">
       {/* Stats row */}
       <div className="grid grid-cols-4 gap-4 flex-shrink-0">
-        <StatCard icon={MessageSquare} label="Mensajes hoy"    value={stats?.mensajesToday ?? 0}              color="blue"   />
-        <StatCard icon={Users}         label="Clientes nuevos" value={stats?.clientesNuevos ?? 0}             color="green"  />
-        <StatCard icon={Calendar}      label="Turnos hoy"      value={stats?.turnosHoy ?? 0}                  color="purple" />
-        <StatCard icon={DollarSign}    label="Ventas hoy"      value={fmtARS(stats?.ventasHoy ?? 0)}          color="yellow" />
+        <StatCard icon={ChatCircle}     label="Mensajes hoy"    value={stats?.mensajesToday ?? 0}              color="blue"   />
+        <StatCard icon={UserPlus}      label="Clientes nuevos" value={stats?.clientesNuevos ?? 0}             color="green"  />
+        <StatCard icon={CalendarCheck} label="Turnos hoy"      value={stats?.turnosHoy ?? 0}                  color="purple" />
+        <StatCard icon={CurrencyDollar} label="Ventas hoy"     value={fmtARS(stats?.ventasHoy ?? 0)}          color="yellow" />
       </div>
 
       {/* Conversation panel */}

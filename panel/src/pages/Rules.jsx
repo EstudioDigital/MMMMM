@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Plus, PencilSimple, Trash, ArrowUp, ArrowDown } from '@phosphor-icons/react'
 import { useStore } from '../store.js'
 import { getRules, createRule, updateRule, deleteRule } from '../api/client.js'
 
@@ -76,6 +76,7 @@ function RuleModal({ rule, onClose, onSave, isPending }) {
 }
 
 export default function Rules() {
+  useEffect(() => { document.title = 'Reglas — MateBot' }, [])
   const account = useStore((s) => s.account)
   const qc = useQueryClient()
   const [modal, setModal] = useState(null)
@@ -124,11 +125,11 @@ export default function Rules() {
             {/* Priority arrows */}
             <div className="flex flex-col items-center gap-0.5 pt-0.5 flex-shrink-0">
               <button onClick={() => movePriority(rule, -1)} className="text-text-secondary hover:text-text-primary p-0.5 rounded">
-                <ChevronUp size={13} />
+                <ArrowUp size={13} weight="bold" />
               </button>
               <span className="text-xs text-text-secondary tabular-nums w-5 text-center">{rule.priority}</span>
               <button onClick={() => movePriority(rule, 1)} className="text-text-secondary hover:text-text-primary p-0.5 rounded">
-                <ChevronDown size={13} />
+                <ArrowDown size={13} weight="bold" />
               </button>
             </div>
 
@@ -151,10 +152,10 @@ export default function Rules() {
             <div className="flex items-center gap-2 flex-shrink-0">
               <Toggle checked={rule.active} onChange={() => toggle(rule)} />
               <button onClick={() => setModal(rule)} className="p-1.5 text-text-secondary hover:text-text-primary rounded">
-                <Pencil size={13} />
+                <PencilSimple size={13} />
               </button>
               <button onClick={() => remove(rule.id)} className="p-1.5 text-text-secondary hover:text-red-400 rounded">
-                <Trash2 size={13} />
+                <Trash size={13} />
               </button>
             </div>
           </div>

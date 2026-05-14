@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion'
 
+const PANEL_URL = import.meta.env.VITE_PANEL_URL || 'http://localhost:5173'
+
 export default function CtaBanner() {
   return (
     <section className="py-24 px-6">
@@ -29,7 +31,7 @@ export default function CtaBanner() {
               Configuración en 15 minutos. Sin tarjeta de crédito.
             </p>
             <a
-              href="#"
+              href={`${PANEL_URL}/register`}
               className="inline-flex items-center gap-2 bg-white hover:bg-white/90 text-black font-semibold text-base px-8 py-4 rounded-xl transition-all duration-200 hover:shadow-2xl"
             >
               Crear mi cuenta gratis →

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { format } from 'date-fns'
-import { MessageSquare } from 'lucide-react'
+import { ChatCircleDots } from '@phosphor-icons/react'
 
 function initials(str) {
   return (str ?? '?').charAt(0).toUpperCase()
@@ -17,7 +17,7 @@ export function ChatWindow({ messages, client }) {
     return (
       <div className="bg-card border border-card-border rounded-lg flex items-center justify-center">
         <div className="text-center">
-          <MessageSquare size={36} className="mx-auto mb-3 text-text-secondary opacity-40" />
+          <ChatCircleDots size={36} weight="duotone" className="mx-auto mb-3 text-text-secondary opacity-40" />
           <p className="text-sm text-text-secondary">Seleccioná una conversación</p>
         </div>
       </div>

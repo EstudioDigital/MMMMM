@@ -1,16 +1,15 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import {
-  LayoutDashboard, Package, Calendar, Zap, Users, Settings, MessageCircle,
-} from 'lucide-react'
+import { House, Package, CalendarCheck, Lightning, Users, Gear } from '@phosphor-icons/react'
 import { useStore } from '../store.js'
+import logo from '../assets/logo.png'
 
 const NAV = [
-  { to: '/',             icon: LayoutDashboard, label: 'Dashboard'     },
-  { to: '/catalog',      icon: Package,         label: 'Catálogo'      },
-  { to: '/appointments', icon: Calendar,        label: 'Turnos'        },
-  { to: '/rules',        icon: Zap,             label: 'Reglas'        },
-  { to: '/clients',      icon: Users,           label: 'Clientes'      },
-  { to: '/settings',     icon: Settings,        label: 'Configuración' },
+  { to: '/',             icon: House,          label: 'Dashboard'     },
+  { to: '/catalog',      icon: Package,        label: 'Catálogo'      },
+  { to: '/appointments', icon: CalendarCheck,  label: 'Turnos'        },
+  { to: '/rules',        icon: Lightning,      label: 'Reglas'        },
+  { to: '/clients',      icon: Users,          label: 'Clientes'      },
+  { to: '/settings',     icon: Gear,           label: 'Configuración' },
 ]
 
 export function Layout() {
@@ -22,9 +21,7 @@ export function Layout() {
       <aside className="w-56 flex-shrink-0 bg-sidebar border-r border-card-border flex flex-col">
         {/* Logo */}
         <div className="h-14 px-5 flex items-center gap-2.5 border-b border-card-border">
-          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-            <MessageCircle size={14} className="text-white" />
-          </div>
+          <img src={logo} alt="MateBot" className="w-8 h-8 object-contain flex-shrink-0 animate-mate-walk" />
           <span className="font-semibold text-text-primary text-sm">MateBot</span>
         </div>
 
@@ -43,7 +40,7 @@ export function Layout() {
                 }`
               }
             >
-              <Icon size={15} />
+              <Icon size={16} weight="duotone" />
               {label}
             </NavLink>
           ))}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MessageCircle, Loader2, ArrowLeft, Mail } from 'lucide-react'
+import { SpinnerGap, ArrowLeft, EnvelopeSimple } from '@phosphor-icons/react'
+import logo from '../assets/logo.png'
 import api from '../api/client.js'
 
 export default function ForgotPassword() {
@@ -27,9 +28,7 @@ export default function ForgotPassword() {
     <div className="min-h-screen bg-[#0f1117] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-[#25D366] flex items-center justify-center mb-4">
-            <MessageCircle size={24} className="text-white" />
-          </div>
+          <img src={logo} alt="MateBot" className="w-12 h-12 object-contain mb-4" />
           <h1 className="text-xl font-semibold text-[#e2e8f0]">Recuperar contraseña</h1>
           <p className="text-[#64748b] text-sm mt-1 text-center">
             Te mandamos instrucciones a tu email
@@ -40,7 +39,7 @@ export default function ForgotPassword() {
           {sent ? (
             <div className="flex flex-col items-center gap-4 py-4 text-center">
               <div className="w-12 h-12 rounded-full bg-[#25D366]/15 border border-[#25D366]/25 flex items-center justify-center">
-                <Mail size={22} className="text-[#25D366]" />
+                <EnvelopeSimple size={22} className="text-[#25D366]" />
               </div>
               <div>
                 <p className="text-[#e2e8f0] font-medium">¡Listo!</p>
@@ -81,7 +80,7 @@ export default function ForgotPassword() {
                 disabled={loading}
                 className="bg-[#25D366] hover:bg-[#20c05a] disabled:opacity-60 text-black font-semibold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
               >
-                {loading && <Loader2 size={15} className="animate-spin" />}
+                {loading && <SpinnerGap size={15} weight="bold" className="animate-spin" />}
                 {loading ? 'Enviando...' : 'Enviar instrucciones'}
               </button>
             </form>

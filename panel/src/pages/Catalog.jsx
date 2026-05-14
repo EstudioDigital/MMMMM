@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, PencilSimple, Trash } from '@phosphor-icons/react'
 import { useStore } from '../store.js'
 import { getProducts, createProduct, updateProduct, deleteProduct } from '../api/client.js'
 
@@ -97,6 +97,7 @@ const BTN_PRIMARY = 'flex-1 px-4 py-2 text-sm text-white bg-accent rounded-md ho
 const BTN_GHOST   = 'flex-1 px-4 py-2 text-sm text-text-secondary border border-card-border rounded-md hover:bg-white/[0.04] transition-colors'
 
 export default function Catalog() {
+  useEffect(() => { document.title = 'Catálogo — MateBot' }, [])
   const account = useStore((s) => s.account)
   const qc = useQueryClient()
   const [modal, setModal] = useState(null) // null | {} (new) | product (edit)
@@ -162,10 +163,10 @@ export default function Catalog() {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 justify-end">
                     <button onClick={() => setModal(p)} className="p-1.5 text-text-secondary hover:text-text-primary rounded">
-                      <Pencil size={13} />
+                      <PencilSimple size={13} />
                     </button>
                     <button onClick={() => remove(p.id)} className="p-1.5 text-text-secondary hover:text-red-400 rounded">
-                      <Trash2 size={13} />
+                      <Trash size={13} />
                     </button>
                   </div>
                 </td>

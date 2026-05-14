@@ -32,13 +32,12 @@ const fastify = Fastify({
 })
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : ['http://localhost:5173', 'http://localhost:5174']
+
 await fastify.register(fastifyCors, {
-  origin: [
-    'http://localhost:5173', // panel
-    'http://localhost:5174', // landing
-    ...(process.env.PANEL_URL ? [process.env.PANEL_URL] : []),
-    ...(process.env.LANDING_URL ? [process.env.LANDING_URL] : []),
-  ],
+  origin: allowedOrigins,
   credentials: true,
 })
 
@@ -55,7 +54,7 @@ await fastify.register(fastifyRateLimit, {
 // Socket.io — attached to Fastify's underlying HTTP server
 const io = new SocketIO(fastify.server, {
   cors: {
-    origin: process.env.PANEL_URL ?? 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
   },
 })

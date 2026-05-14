@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check } from 'lucide-react'
+import { CheckCircle } from '@phosphor-icons/react'
 
 const plans = [
   {
@@ -46,6 +46,8 @@ const plans = [
     ],
   },
 ]
+
+const PANEL_URL = import.meta.env.VITE_PANEL_URL || 'http://localhost:5173'
 
 export default function Pricing() {
   const [annual, setAnnual] = useState(false)
@@ -131,14 +133,14 @@ export default function Pricing() {
                 <ul className="flex flex-col gap-3">
                   {plan.features.map((f, j) => (
                     <li key={j} className="flex items-start gap-3">
-                      <Check size={14} className="text-[#25D366] flex-shrink-0 mt-0.5" />
+                      <CheckCircle size={14} weight="fill" color="#25D366" className="flex-shrink-0 mt-0.5" />
                       <span className="text-[#a0a0a0] text-sm">{f}</span>
                     </li>
                   ))}
                 </ul>
 
                 <a
-                  href="#"
+                  href={`${PANEL_URL}/register`}
                   className={`w-full text-center py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 mt-auto ${
                     isPro
                       ? 'bg-[#25D366] hover:bg-[#20c05a] text-black hover:shadow-lg hover:shadow-[#25D366]/25'

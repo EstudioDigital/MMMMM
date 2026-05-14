@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Star } from 'lucide-react'
+import { Star } from '@phosphor-icons/react'
 
 const testimonials = [
   {
@@ -54,7 +54,7 @@ export default function Testimonials() {
             >
               <div className="flex gap-1">
                 {[...Array(5)].map((_, j) => (
-                  <Star key={j} size={14} className="text-[#25D366] fill-[#25D366]" />
+                  <Star key={j} size={14} weight="fill" color="#25D366" />
                 ))}
               </div>
 

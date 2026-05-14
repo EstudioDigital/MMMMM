@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Menu, X } from 'lucide-react'
+import { List, X } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
+import logo from '../assets/logo.png'
+
+const PANEL_URL = import.meta.env.VITE_PANEL_URL || 'http://localhost:5173'
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -26,7 +29,13 @@ export default function Navbar() {
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <a href="#" className="flex items-center gap-2 text-white font-semibold text-lg">
-          <span className="text-2xl">🧉</span>
+          <motion.img
+            src={logo}
+            alt="MateBot"
+            className="w-8 h-8 md:w-10 md:h-10 object-contain"
+            animate={{ y: [0, -4, 0], rotate: [-2, 2, -2] }}
+            transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
+          />
           <span>MateBot</span>
         </a>
 
@@ -44,7 +53,7 @@ export default function Navbar() {
 
         <div className="hidden md:flex items-center gap-4">
           <a
-            href="#precios"
+            href={`${PANEL_URL}/register`}
             className="bg-[#25D366] hover:bg-[#20c05a] text-black font-semibold text-sm px-5 py-2.5 rounded-lg transition-colors"
           >
             Empezar gratis
@@ -55,7 +64,7 @@ export default function Navbar() {
           className="md:hidden text-white p-1"
           onClick={() => setMobileOpen(v => !v)}
         >
-          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          {mobileOpen ? <X size={22} weight="bold" /> : <List size={22} weight="bold" />}
         </button>
       </div>
 

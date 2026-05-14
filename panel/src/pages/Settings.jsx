@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Save, Check } from 'lucide-react'
+import { FloppyDisk, Check } from '@phosphor-icons/react'
 import { useStore } from '../store.js'
 import { getAccount, updateAccount, getModules, updateModule } from '../api/client.js'
 
@@ -32,6 +32,7 @@ function Toggle({ checked, onChange }) {
 }
 
 export default function Settings() {
+  useEffect(() => { document.title = 'Configuración — MateBot' }, [])
   const account = useStore((s) => s.account)
   const setAccount = useStore((s) => s.setAccount)
   const qc = useQueryClient()
@@ -151,7 +152,7 @@ export default function Settings() {
 
         <button type="submit" disabled={isPending}
           className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white text-sm font-medium rounded-md hover:bg-accent/90 transition-colors disabled:opacity-60">
-          {saved ? <Check size={15} /> : <Save size={15} />}
+          {saved ? <Check size={15} weight="bold" /> : <FloppyDisk size={15} weight="bold" />}
           {saved ? '¡Guardado!' : isPending ? 'Guardando...' : 'Guardar cambios'}
         </button>
       </form>

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { UserPlus, Smartphone, Bot } from 'lucide-react'
+import { UserPlus, WhatsappLogo, Robot } from '@phosphor-icons/react'
 
 const steps = [
   {
@@ -10,13 +10,13 @@ const steps = [
   },
   {
     number: '02',
-    icon: Smartphone,
+    icon: WhatsappLogo,
     title: 'Conectás tu WhatsApp',
     description: 'Vinculás tu número de WhatsApp Business con un click. Sin apps adicionales.',
   },
   {
     number: '03',
-    icon: Bot,
+    icon: Robot,
     title: 'El bot trabaja solo',
     description: 'Desde ese momento MateBot atiende, agenda y responde 24/7 sin que vos intervengas.',
   },

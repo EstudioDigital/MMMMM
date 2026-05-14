@@ -15,6 +15,15 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
+      keyframes: {
+        mateWalk: {
+          '0%, 100%': { transform: 'translateY(0px) rotate(-2deg)' },
+          '50%':       { transform: 'translateY(-4px) rotate(2deg)' },
+        },
+      },
+      animation: {
+        'mate-walk': 'mateWalk 0.9s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

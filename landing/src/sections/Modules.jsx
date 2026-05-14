@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion'
-import { Calendar, ShoppingCart, DollarSign, Bot, Star, BarChart2 } from 'lucide-react'
+import { CalendarCheck, ShoppingCart, ChartLine, Robot, Star, ChartBar } from '@phosphor-icons/react'
 
 const modules = [
   {
-    icon: Calendar,
+    icon: CalendarCheck,
     title: 'Turnos automáticos',
     description: 'Agenda, confirma y recuerda turnos sin que vos intervengas. Tus clientes eligen horario por chat.',
   },
@@ -13,12 +13,12 @@ const modules = [
     description: 'Tus clientes ven precios y hacen pedidos directo por chat. Sin llamadas, sin confusión.',
   },
   {
-    icon: DollarSign,
+    icon: ChartLine,
     title: 'Control de finanzas',
     description: 'Registrá ventas y gastos hablándole al bot. Resumen semanal automático cada lunes.',
   },
   {
-    icon: Bot,
+    icon: Robot,
     title: 'IA conversacional',
     description: 'Responde preguntas no previstas con inteligencia artificial entrenada para tu negocio.',
   },
@@ -28,7 +28,7 @@ const modules = [
     description: 'Sistema de puntos, cupones de cumpleaños y reactivación automática de clientes inactivos.',
   },
   {
-    icon: BarChart2,
+    icon: ChartBar,
     title: 'Reportes automáticos',
     description: 'Recibís un resumen completo de tu negocio todos los lunes a las 8am en tu WhatsApp.',
   },

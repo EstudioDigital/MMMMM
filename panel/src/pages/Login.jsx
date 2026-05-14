@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, MessageCircle, Loader2 } from 'lucide-react'
+import { Eye, EyeSlash, SpinnerGap } from '@phosphor-icons/react'
+import logo from '../assets/logo.png'
 import { useAuthStore } from '../store/authStore.js'
 
 export default function Login() {
+  useEffect(() => { document.title = 'Iniciar sesión — MateBot' }, [])
   const navigate = useNavigate()
   const login = useAuthStore((s) => s.login)
   const isLoading = useAuthStore((s) => s.isLoading)
@@ -32,9 +34,7 @@ export default function Login() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-[#25D366] flex items-center justify-center mb-4">
-            <MessageCircle size={24} className="text-white" />
-          </div>
+          <img src={logo} alt="MateBot" className="w-16 h-16 object-contain mb-4" />
           <h1 className="text-xl font-semibold text-[#e2e8f0]">MateBot</h1>
           <p className="text-[#64748b] text-sm mt-1">Iniciá sesión en tu panel</p>
         </div>
@@ -72,7 +72,7 @@ export default function Login() {
                   onClick={() => setShowPass((v) => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] hover:text-[#e2e8f0] transition-colors"
                 >
-                  {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  {showPass ? <EyeSlash size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
@@ -88,7 +88,7 @@ export default function Login() {
               disabled={isLoading}
               className="bg-[#25D366] hover:bg-[#20c05a] disabled:opacity-60 text-black font-semibold text-sm py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 mt-1"
             >
-              {isLoading && <Loader2 size={15} className="animate-spin" />}
+              {isLoading && <SpinnerGap size={15} weight="bold" className="animate-spin" />}
               {isLoading ? 'Ingresando...' : 'Ingresar'}
             </button>
           </form>
