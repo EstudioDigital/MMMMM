@@ -1,16 +1,41 @@
-node_modules/
+# Variables de entorno — NUNCA subir al repo
 .env
+.env.local
 .env.production
-dist/
-.prisma/
-*.log
-
-panel/node_modules/
-panel/dist/
+.env.*.local
 panel/.env
+panel/.env.local
 panel/.env.production
-
-landing/node_modules/
-landing/dist/
 landing/.env
+landing/.env.local
 landing/.env.production
+
+# Dependencias
+node_modules/
+panel/node_modules/
+landing/node_modules/
+
+# Build
+dist/
+panel/dist/
+landing/dist/
+build/
+
+# Prisma
+.prisma/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Temporales
+*.tmp
+*.temp

@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcrypt'
 import { verifyJWT } from '../middleware/auth.js'
+import { encrypt } from '../utils/crypto.js'
+import { logSecurityEvent } from '../utils/securityLogger.js'
+import { sanitizeString, isValidEmail } from '../utils/sanitize.js'
 
 const prisma = new PrismaClient()
 const SALT_ROUNDS = 10
@@ -8,17 +11,27 @@ const JWT_EXPIRES = process.env.JWT_EXPIRES_IN ?? '7d'
 
 export default async function authRoutes(fastify) {
   // POST /api/auth/register
-  fastify.post('/api/auth/register', async (req, reply) => {
-    const { email, password, name } = req.body ?? {}
+  fastify.post('/api/auth/register', {
+    config: { rateLimit: { max: 5, timeWindow: '1 hour' } },
+  }, async (req, reply) => {
+    const { email: rawEmail, password, name: rawName } = req.body ?? {}
+    const cleanEmail = typeof rawEmail === 'string' ? rawEmail.toLowerCase().trim() : ''
+    const cleanName = sanitizeString(rawName)
 
-    if (!email || !password || !name) {
+    if (!cleanEmail || !password || !cleanName) {
       return reply.code(400).send({ error: 'Faltan campos requeridos: name, email, password' })
+    }
+    if (!isValidEmail(cleanEmail)) {
+      return reply.code(400).send({ error: 'Email inválido' })
     }
     if (password.length < 8) {
       return reply.code(400).send({ error: 'La contraseña debe tener al menos 8 caracteres' })
     }
+    if (cleanName.length < 2) {
+      return reply.code(400).send({ error: 'El nombre debe tener al menos 2 caracteres' })
+    }
 
-    const existing = await prisma.user.findUnique({ where: { email } })
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } })
     if (existing) {
       return reply.code(409).send({ error: 'Este email ya está registrado' })
     }
@@ -27,13 +40,15 @@ export default async function authRoutes(fastify) {
     const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
 
     const user = await prisma.user.create({
-      data: { email, password: hashed, name, trialEndsAt },
+      data: { email: cleanEmail, password: hashed, name: cleanName, trialEndsAt },
     })
 
     const token = fastify.jwt.sign(
       { userId: user.id, email: user.email, accountId: user.accountId },
       { expiresIn: JWT_EXPIRES },
     )
+
+    logSecurityEvent('REGISTER', { email: cleanEmail }, req)
 
     return reply.code(201).send({
       token,
@@ -43,7 +58,7 @@ export default async function authRoutes(fastify) {
 
   // POST /api/auth/login  (rate limited: 5 req/min per IP)
   fastify.post('/api/auth/login', {
-    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    config: { rateLimit: { max: 10, timeWindow: '15 minutes' } },
   }, async (req, reply) => {
     const { email, password } = req.body ?? {}
 
@@ -53,11 +68,13 @@ export default async function authRoutes(fastify) {
 
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user) {
+      logSecurityEvent('LOGIN_FAILED', { email }, req)
       return reply.code(401).send({ error: 'Credenciales inválidas' })
     }
 
     const valid = await bcrypt.compare(password, user.password)
     if (!valid) {
+      logSecurityEvent('LOGIN_FAILED', { email }, req)
       return reply.code(401).send({ error: 'Credenciales inválidas' })
     }
 
@@ -65,6 +82,8 @@ export default async function authRoutes(fastify) {
       { userId: user.id, email: user.email, accountId: user.accountId },
       { expiresIn: JWT_EXPIRES },
     )
+
+    logSecurityEvent('LOGIN_SUCCESS', { email }, req)
 
     return reply.send({
       token,
@@ -88,7 +107,7 @@ export default async function authRoutes(fastify) {
   })
 
   // POST /api/auth/forgot
-  fastify.post('/api/auth/forgot', async (req, reply) => {
+  fastify.post('/api/auth/forgot', { config: { rateLimit: { max: 3, timeWindow: '1 hour' } } }, async (req, reply) => {
     const { email } = req.body ?? {}
     const user = await prisma.user.findUnique({ where: { email } })
 
@@ -147,7 +166,7 @@ export default async function authRoutes(fastify) {
       data: {
         name: name ?? 'Mi Negocio',
         phoneNumberId,
-        waToken,
+        waToken: encrypt(waToken),
         ownerPhone: ownerPhone ?? '',
         industry: industry ?? null,
         tone: tone ?? 'friendly',

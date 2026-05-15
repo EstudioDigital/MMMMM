@@ -7,6 +7,8 @@ import fastifyRateLimit from '@fastify/rate-limit'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { PrismaClient } from '@prisma/client'
 import { Server as SocketIO } from 'socket.io'
+import { decrypt } from './utils/crypto.js'
+import { logSecurityEvent } from './utils/securityLogger.js'
 import { brain } from './brain/index.js'
 import { sendWhatsAppMessage } from './utils/whatsapp.js'
 import { verifyJWT } from './middleware/auth.js'
@@ -19,16 +21,36 @@ const PORT = parseInt(process.env.PORT ?? '3000', 10)
 const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN ?? 'mate_secret_xyz'
 const APP_SECRET = process.env.META_APP_SECRET ?? ''
 const IS_DEV = (process.env.NODE_ENV ?? 'development') === 'development'
-const JWT_SECRET = process.env.JWT_SECRET ?? 'CHANGE_THIS_SECRET_IN_PRODUCTION_USE_64_CHARS'
-
-if (!process.env.JWT_SECRET) {
-  console.warn('[WARN] JWT_SECRET no está definido en .env — usando valor de desarrollo inseguro')
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('ERROR: JWT_SECRET no configurado o demasiado corto. Mínimo 32 caracteres.')
+  console.error("Generá uno con: node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"")
+  process.exit(1)
 }
+if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.length !== 64) {
+  console.error('ERROR: ENCRYPTION_KEY debe ser de 64 caracteres hex (32 bytes)')
+  console.error("Generá uno con: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"")
+  process.exit(1)
+}
+
+const JWT_SECRET = process.env.JWT_SECRET
 
 const fastify = Fastify({
   logger: IS_DEV
     ? { transport: { target: 'pino-pretty', options: { colorize: true } } }
     : { level: process.env.LOG_LEVEL ?? 'info' },
+})
+
+// ── Security headers ─────────────────────────────────────────────────────────
+fastify.addHook('onSend', (_req, reply, _payload, done) => {
+  reply.header('X-Content-Type-Options', 'nosniff')
+  reply.header('X-Frame-Options', 'DENY')
+  reply.header('X-XSS-Protection', '1; mode=block')
+  reply.header('Referrer-Policy', 'strict-origin-when-cross-origin')
+  reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  if (process.env.NODE_ENV === 'production') {
+    reply.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+  }
+  done()
 })
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
@@ -37,8 +59,15 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   : ['http://localhost:5173', 'http://localhost:5174']
 
 await fastify.register(fastifyCors, {
-  origin: allowedOrigins,
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Not allowed by CORS'), false)
+    }
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 })
 
 // ── JWT ───────────────────────────────────────────────────────────────────────
@@ -46,9 +75,14 @@ await fastify.register(fastifyJwt, { secret: JWT_SECRET })
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
 await fastify.register(fastifyRateLimit, {
-  global: false, // solo aplicar donde se configure explícitamente
+  global: true,
   max: 100,
   timeWindow: '1 minute',
+  errorResponseBuilder: () => ({
+    statusCode: 429,
+    error: 'Too Many Requests',
+    message: 'Demasiadas solicitudes. Intentá de nuevo en unos minutos.',
+  }),
 })
 
 // Socket.io — attached to Fastify's underlying HTTP server
@@ -94,12 +128,13 @@ fastify.get('/webhook', (request, reply) => {
 })
 
 // Recepción de mensajes de Meta (POST) — responde 200 inmediatamente
-fastify.post('/webhook', (request, reply) => {
+fastify.post('/webhook', { config: { rateLimit: { max: 1000, timeWindow: '1 minute' } } }, (request, reply) => {
   if (APP_SECRET) {
     try {
       verifyMetaSignature(request)
     } catch (err) {
       fastify.log.warn(`Firma inválida: ${err.message}`)
+      logSecurityEvent('WEBHOOK_INVALID_SIGNATURE', { error: err.message }, request)
       return reply.code(401).send('Unauthorized')
     }
   }
@@ -207,10 +242,15 @@ async function processMessage(msg, phoneNumberId, contacts) {
   const response = await brain(savedMsg, account, client_)
   fastify.log.info({ response }, 'Respuesta generada por el brain')
 
+  let resolvedToken = process.env.META_ACCESS_TOKEN
+  if (account.waToken) {
+    try { resolvedToken = decrypt(account.waToken) } catch { resolvedToken = account.waToken }
+  }
+
   const sent = await sendWhatsAppMessage({
     to: senderPhone,
     phoneNumberId: account.phoneNumberId,
-    token: account.waToken || process.env.META_ACCESS_TOKEN,
+    token: resolvedToken,
     message: response,
   })
 

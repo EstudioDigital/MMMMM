@@ -16,12 +16,15 @@ export async function aiResponse(message, account, client, history = []) {
   const messages     = buildMessages(message, history, systemPrompt)
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 300,  // respuestas cortas para WhatsApp
-      temperature: 0.7, // naturalidad sin volverse impredecible
-      messages,
-    })
+    const response = await openai.chat.completions.create(
+      {
+        model: 'gpt-4o-mini',
+        max_tokens: 300,
+        temperature: 0.7,
+        messages,
+      },
+      { timeout: 15000 },
+    )
 
     const text = response.choices[0]?.message?.content?.trim()
     if (!text) return null
