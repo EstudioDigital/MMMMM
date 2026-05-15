@@ -9,6 +9,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String
+  name        String
+  accountId   String?   @unique
+  plan        String    @default("trial")
+  trialEndsAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  account Account? @relation(fields: [accountId], references: [id])
+}
+
 model Account {
   id            String   @id @default(cuid())
   name          String
@@ -24,6 +38,7 @@ model Account {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  user         User?
   modules      Module[]
   rules        Rule[]
   clients      Client[]

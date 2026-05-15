@@ -3,9 +3,9 @@
 import { PrismaClient } from '@prisma/client';
 import { matchRule } from './rules.js';
 import { aiResponse } from './ai.js';
-import { handleAppointment } from '../modules/appointments.js';
+import { handleAppointment, hasActiveSession } from '../modules/appointments.js';
 import { handleFinance } from '../modules/finance.js';
-import { handleCatalog } from '../modules/catalog.js';
+import { handleCatalog, hasActiveCatalogSession } from '../modules/catalog.js';
 
 const prisma = new PrismaClient();
 
@@ -19,9 +19,10 @@ function norm(text) {
 /** Detecta intención de turno en el texto */
 function detectAppointmentIntent(text) {
   const t = norm(text);
-  if (/\b(reservar|reserva|sacar turno|pedir turno|quiero turno|necesito turno)\b/.test(t)) return 'book';
-  if (/\b(cancelar|cancelo|anular|anulo)\b/.test(t)) return 'cancel';
-  if (/\b(turno|cita|cuando|fecha|hora)\b/.test(t)) return 'consult';
+  // cancel must be checked before book — both phrases may contain "turno"
+  if (/\b(cancelar|cancelo|anular|anulo)\b/.test(t) || t.includes('no puedo ir')) return 'cancel';
+  if (t.includes('mis turnos') || t.includes('tengo turno') || t.includes('cuando es') || t.includes('cuál es mi turno')) return 'consult';
+  if (/\b(turno|cita|reserva|agendar)\b/.test(t) || t.includes('sacar turno')) return 'book';
   return null;
 }
 
@@ -46,9 +47,10 @@ function detectFinanceIntent(text) {
 /** Detecta intención de catálogo en el texto */
 function detectCatalogIntent(text) {
   const t = norm(text);
-  if (/\b(catalogo|carta|menu|que tienen|que venden|productos|lista)\b/.test(t)) return 'browse';
-  if (/\b(precio|cuanto sale|cuanto cuesta|cuánto sale|cuánto cuesta|vale)\b/.test(t)) return 'price';
-  if (/\b(quiero|pedir|pedido|comprar|llevar|dame|me da)\b/.test(t)) return 'order';
+  // price before order — "quiero saber el precio" must not match order
+  if (t.includes('precio') || t.includes('cuanto cuesta') || t.includes('cuanto vale') || t.includes('cuanto sale')) return 'price';
+  if (/\b(catalogo|carta|menu|productos|lista)\b/.test(t) || t.includes('que tienen') || t.includes('que venden')) return 'browse';
+  if (t.includes('quiero pedir') || t.includes('hacer pedido') || t.includes('quiero comprar') || /\b(pedir|comprar|pedido)\b/.test(t)) return 'order';
   return null;
 }
 
@@ -77,6 +79,14 @@ export async function brain(message, account, client_) {
   // Nivel 2: módulos activos por intención detectada
 
   if (isModuleActive(account, 'appointments')) {
+    // Active booking session: this message is a slot selection
+    if (hasActiveSession(account.id, client_.phone)) {
+      try {
+        return await handleAppointment('confirm', message, account, client_);
+      } catch (err) {
+        console.error('[brain] Error en módulo appointments (confirm):', err.message);
+      }
+    }
     const intent = detectAppointmentIntent(text);
     if (intent) {
       try {
@@ -102,6 +112,14 @@ export async function brain(message, account, client_) {
   }
 
   if (isModuleActive(account, 'catalog')) {
+    // Active cart session: this message is part of the ordering flow
+    if (hasActiveCatalogSession(account.id, client_.phone)) {
+      try {
+        return await handleCatalog('cart', message, account, client_);
+      } catch (err) {
+        console.error('[brain] Error en módulo catalog (cart):', err.message);
+      }
+    }
     const intent = detectCatalogIntent(text);
     if (intent) {
       try {
