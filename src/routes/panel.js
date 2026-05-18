@@ -106,6 +106,44 @@ export default async function panelRoutes(fastify) {
     return { ok: true };
   });
 
+  // ── Business Hours ────────────────────────────────────────────────────────
+  const HOUR_DEFAULTS = {
+    0: { isOpen: false, openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+    1: { isOpen: true,  openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+    2: { isOpen: true,  openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+    3: { isOpen: true,  openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+    4: { isOpen: true,  openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+    5: { isOpen: true,  openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+    6: { isOpen: false, openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+  };
+
+  fastify.get('/api/accounts/:id/business-hours', async (req) => {
+    const accountId = req.params.id;
+    const saved = await prisma.businessHours.findMany({
+      where: { accountId },
+      orderBy: { dayOfWeek: 'asc' },
+    });
+    const savedMap = new Map(saved.map((h) => [h.dayOfWeek, h]));
+    return [0, 1, 2, 3, 4, 5, 6].map((day) =>
+      savedMap.get(day) ?? { accountId, dayOfWeek: day, ...HOUR_DEFAULTS[day] },
+    );
+  });
+
+  fastify.put('/api/accounts/:id/business-hours', async (req) => {
+    const accountId = req.params.id;
+    const days = req.body;
+    await Promise.all(
+      days.map((d) =>
+        prisma.businessHours.upsert({
+          where:  { accountId_dayOfWeek: { accountId, dayOfWeek: d.dayOfWeek } },
+          create: { accountId, dayOfWeek: d.dayOfWeek, isOpen: d.isOpen, openTime: d.openTime, closeTime: d.closeTime, slotDuration: d.slotDuration },
+          update: { isOpen: d.isOpen, openTime: d.openTime, closeTime: d.closeTime, slotDuration: d.slotDuration },
+        }),
+      ),
+    );
+    return { ok: true };
+  });
+
   // ── Appointments ──────────────────────────────────────────────────────────
   fastify.get('/api/accounts/:id/appointments', async (req) => {
     const now = new Date();

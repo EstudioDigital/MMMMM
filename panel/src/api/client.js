@@ -53,6 +53,10 @@ export const deleteProduct        = (id, pid)         => api.delete(`/accounts/$
 export const getAppointments      = (id)              => api.get(`/accounts/${id}/appointments`)
 export const updateAppointment    = (id, aid, data)   => api.put(`/accounts/${id}/appointments/${aid}`, data)
 
+// Business Hours
+export const getBusinessHours     = (id)              => api.get(`/accounts/${id}/business-hours`)
+export const updateBusinessHours  = (id, data)        => api.put(`/accounts/${id}/business-hours`, data)
+
 // Rules
 export const getRules             = (id)              => api.get(`/accounts/${id}/rules`)
 export const createRule           = (id, data)        => api.post(`/accounts/${id}/rules`, data)

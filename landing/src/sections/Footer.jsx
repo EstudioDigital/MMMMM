@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function Footer() {
   return (
     <footer className="bg-[#111111] border-t border-white/5 py-12 px-6">
@@ -16,8 +18,6 @@ export default function Footer() {
               { label: 'Cómo funciona', href: '#como-funciona' },
               { label: 'Módulos', href: '#modulos' },
               { label: 'Precios', href: '#precios' },
-              { label: 'Términos', href: '#' },
-              { label: 'Privacidad', href: '#' },
               { label: 'Contacto', href: 'mailto:NuestroEstudioDigital@gmail.com' },
             ].map(link => (
               <a
@@ -28,6 +28,12 @@ export default function Footer() {
                 {link.label}
               </a>
             ))}
+            <Link to="/terminos" className="text-[#a0a0a0] hover:text-white text-sm transition-colors">
+              Términos
+            </Link>
+            <Link to="/privacidad" className="text-[#a0a0a0] hover:text-white text-sm transition-colors">
+              Privacidad
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">

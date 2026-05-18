@@ -12,21 +12,27 @@ const TONES = [
 ]
 
 const MODULES = [
-  { type: 'appointments', label: 'Turnos',         desc: 'Gestión de reservas y recordatorios' },
-  { type: 'catalog',      label: 'Catálogo',        desc: 'Mostrar productos y tomar pedidos'   },
-  { type: 'finance',      label: 'Finanzas',        desc: 'Registro de ingresos y gastos'       },
-  { type: 'ai',           label: 'IA Generativa',   desc: 'Respuestas automáticas con GPT'      },
-  { type: 'campaigns',    label: 'Campañas',        desc: 'Envíos masivos a clientes'           },
-  { type: 'loyalty',      label: 'Fidelización',    desc: 'Puntos y recompensas'               },
+  { type: 'appointments', label: 'Turnos',          desc: 'Gestión de reservas y recordatorios', available: true  },
+  { type: 'catalog',      label: 'Catálogo',         desc: 'Mostrar productos y tomar pedidos',   available: true  },
+  { type: 'ai',           label: 'IA Generativa',    desc: 'Respuestas automáticas con GPT',      available: true  },
+  { type: 'finance',      label: 'Finanzas',         desc: 'Registro de ingresos y gastos',       available: false, soon: true },
+  { type: 'loyalty',      label: 'Fidelización',     desc: 'Puntos y recompensas',               available: false, soon: true },
+  { type: 'campaigns',    label: 'Campañas masivas', desc: 'Envíos masivos a clientes',           available: false, soon: true },
 ]
 
 const INPUT = 'w-full bg-sidebar border border-card-border rounded-md px-3 py-2 text-sm text-text-primary placeholder-text-secondary focus:outline-none focus:border-accent transition-colors'
 
-function Toggle({ checked, onChange }) {
+function Toggle({ checked, onChange, disabled = false }) {
   return (
-    <button type="button" onClick={onChange}
-      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${checked ? 'bg-accent' : 'bg-card-border'}`}>
-      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-4' : 'translate-x-1'}`} />
+    <button
+      type="button"
+      onClick={disabled ? undefined : onChange}
+      disabled={disabled}
+      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
+        disabled ? 'opacity-40 cursor-not-allowed bg-card-border' : checked ? 'bg-accent' : 'bg-card-border'
+      }`}
+    >
+      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${checked && !disabled ? 'translate-x-4' : 'translate-x-1'}`} />
     </button>
   )
 }
@@ -160,15 +166,28 @@ export default function Settings() {
       {/* Modules */}
       <section className="bg-card border border-card-border rounded-lg p-5 space-y-1">
         <h3 className="text-sm font-semibold text-text-primary mb-3">Módulos activos</h3>
-        {MODULES.map(({ type, label, desc }) => {
+        {MODULES.map(({ type, label, desc, soon }) => {
           const mod = modules.find((m) => m.type === type)
           return (
             <div key={type} className="flex items-center justify-between py-3 border-b border-card-border/40 last:border-0">
               <div>
-                <p className="text-sm font-medium text-text-primary">{label}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-text-primary">{label}</p>
+                  {soon && (
+                    <span className="text-xs font-medium text-emerald-400 bg-emerald-400/15 px-1.5 py-0.5 rounded">
+                      Próximamente
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-text-secondary">{desc}</p>
               </div>
-              <Toggle checked={mod?.active ?? false} onChange={() => toggleModule(type)} />
+              <div title={soon ? 'Este módulo estará disponible pronto' : undefined}>
+                <Toggle
+                  checked={mod?.active ?? false}
+                  onChange={() => toggleModule(type)}
+                  disabled={!!soon}
+                />
+              </div>
             </div>
           )
         })}

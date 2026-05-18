@@ -4,7 +4,7 @@ import { ChatCircle, UserPlus, CalendarCheck, CurrencyDollar } from '@phosphor-i
 import { StatCard } from '../components/StatCard.jsx'
 import { ConversationList } from '../components/ConversationList.jsx'
 import { ChatWindow } from '../components/ChatWindow.jsx'
-import { getStats, getConversations, getClientMessages } from '../api/client.js'
+import { getStats, getConversations, getClientMessages, getModules } from '../api/client.js'
 import { useStore } from '../store.js'
 import { useSocket } from '../hooks/useSocket.js'
 
@@ -37,6 +37,12 @@ export default function Dashboard() {
     enabled: !!account && !!selectedClient,
   })
 
+  const { data: modules = [] } = useQuery({
+    queryKey: ['modules', account?.id],
+    queryFn: () => getModules(account.id).then((r) => r.data),
+    enabled: !!account,
+  })
+
   const handleNewMessage = useCallback(
     (data) => {
       if (data.accountId !== account?.id) return
@@ -51,6 +57,8 @@ export default function Dashboard() {
 
   useSocket('new_message', handleNewMessage)
 
+  const financeActive = modules.some((m) => m.type === 'finance' && m.active)
+
   if (!account) {
     return <div className="text-text-secondary text-sm">Cargando cuenta...</div>
   }
@@ -59,10 +67,19 @@ export default function Dashboard() {
     <div className="space-y-5 h-full flex flex-col">
       {/* Stats row */}
       <div className="grid grid-cols-4 gap-4 flex-shrink-0">
-        <StatCard icon={ChatCircle}     label="Mensajes hoy"    value={stats?.mensajesToday ?? 0}              color="blue"   />
-        <StatCard icon={UserPlus}      label="Clientes nuevos" value={stats?.clientesNuevos ?? 0}             color="green"  />
-        <StatCard icon={CalendarCheck} label="Turnos hoy"      value={stats?.turnosHoy ?? 0}                  color="purple" />
-        <StatCard icon={CurrencyDollar} label="Ventas hoy"     value={fmtARS(stats?.ventasHoy ?? 0)}          color="yellow" />
+        <StatCard icon={ChatCircle}     label="Mensajes hoy"    value={stats?.mensajesToday ?? 0}   color="blue"   />
+        <StatCard icon={UserPlus}       label="Clientes nuevos" value={stats?.clientesNuevos ?? 0}  color="green"  />
+        <StatCard icon={CalendarCheck}  label="Turnos hoy"      value={stats?.turnosHoy ?? 0}       color="purple" />
+        <StatCard
+          icon={CurrencyDollar}
+          label={financeActive ? 'Ventas hoy' : 'Finanzas'}
+          color="yellow"
+          value={
+            financeActive
+              ? fmtARS(stats?.ventasHoy ?? 0)
+              : <span className="text-sm font-medium text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded">Próximamente</span>
+          }
+        />
       </div>
 
       {/* Conversation panel */}
