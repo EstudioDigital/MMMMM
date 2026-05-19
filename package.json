@@ -10,7 +10,8 @@
     "start:all": "concurrently \"npm run dev\" \"npm run dev --prefix panel\" \"npm run dev --prefix landing\"",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "seed": "node scripts/seed.js"
   },
   "dependencies": {
     "@fastify/cors": "^8.5.0",
