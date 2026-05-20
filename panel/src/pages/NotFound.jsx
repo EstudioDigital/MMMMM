@@ -18,7 +18,7 @@ export default function NotFound() {
         </p>
         <Link
           to="/"
-          className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20c05a] text-black font-semibold text-sm px-6 py-2.5 rounded-lg transition-colors"
+          className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20c05a] text-black font-semibold text-sm px-6 py-3 rounded-lg transition-colors w-full sm:w-auto"
         >
           <House size={15} />
           Volver al dashboard

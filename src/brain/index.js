@@ -130,14 +130,19 @@ export async function brain(message, account, client_) {
     }
   }
 
-  // Nivel 3: IA generativa si el módulo está activo
+  // Nivel 3: IA generativa — solo para plan pro/business
   if (isModuleActive(account, 'ai')) {
+    const userPlan = account.user?.plan
+    if (!['pro', 'business'].includes(userPlan)) {
+      return { type: 'text', body: 'Recibimos tu mensaje. Te respondemos a la brevedad.' }
+    }
     try {
-      const history = await getRecentHistory(account.id, client_.id);
-      const responseText = await aiResponse(message, account, client_, history);
-      return { type: 'text', body: responseText };
+      const historyLength = account.aiConfig?.historyLength ?? 10
+      const history = await getRecentHistory(account.id, client_.id, historyLength)
+      const response = await aiResponse(message, account, client_, history)
+      if (response) return response
     } catch (err) {
-      console.error('[brain] Error en módulo ai:', err.message);
+      console.error('[brain] Error en módulo ai:', err.message)
     }
   }
 

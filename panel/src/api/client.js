@@ -43,6 +43,9 @@ export const getStats             = (id)              => api.get(`/accounts/${id
 export const getConversations     = (id)              => api.get(`/accounts/${id}/messages`)
 export const getClientMessages    = (id, cid)         => api.get(`/accounts/${id}/clients/${cid}/messages`)
 
+// Manual message
+export const sendMessage          = (id, data)        => api.post(`/accounts/${id}/messages/send`, data)
+
 // Products
 export const getProducts          = (id)              => api.get(`/accounts/${id}/products`)
 export const createProduct        = (id, data)        => api.post(`/accounts/${id}/products`, data)
@@ -69,6 +72,21 @@ export const getClients           = (id)              => api.get(`/accounts/${id
 // Modules
 export const getModules           = (id)              => api.get(`/accounts/${id}/modules`)
 export const updateModule         = (id, type, data)  => api.put(`/accounts/${id}/modules/${type}`, data)
+
+// AI Config
+export const getAiConfig          = (id)              => api.get(`/accounts/${id}/ai-config`)
+export const updateAiConfig       = (id, data)        => api.put(`/accounts/${id}/ai-config`, data)
+
+// Reports
+export const getWeeklyReport      = (id)              => api.get(`/accounts/${id}/reports/weekly`)
+export const getReports           = (id)              => api.get(`/accounts/${id}/reports`)
+export const getReportDownloadUrl = (id, reportId)    => `${API_URL}/api/accounts/${id}/reports/${reportId}/download`
+
+// Notification settings
+export const updateNotificationSettings = (id, data)  => api.put(`/accounts/${id}/notification-settings`, data)
+
+// Subscription
+export const cancelSubscription   = (id)              => api.post(`/accounts/${id}/cancel-subscription`)
 
 // Auth
 export const setupAccount         = (data)            => api.post('/auth/setup-account', data)

@@ -35,6 +35,11 @@ model Account {
   businessInfo  String?
   faq           String?
   catalog       String?
+  aiConfig      Json?
+  notifyPhone1  String?
+  notifyPhone2  String?
+  reportTime    String   @default("23:59")
+  reportEnabled Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -47,6 +52,7 @@ model Account {
   transactions  Transaction[]
   products      Product[]
   businessHours BusinessHours[]
+  reports       Report[]
 }
 
 model Module {
@@ -167,4 +173,18 @@ model Product {
   order       Int     @default(0)
 
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  accountId String
+  type      String   // 'daily' | 'weekly'
+  filename  String
+  data      String   @db.Text
+  createdAt DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, type, createdAt])
+  @@map("reports")
 }

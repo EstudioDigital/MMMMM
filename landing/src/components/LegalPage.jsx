@@ -7,7 +7,7 @@ export default function LegalPage({ title, lastUpdated, children }) {
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       <Navbar />
-      <div className="max-w-3xl mx-auto px-6 pt-28 pb-24">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-16 sm:pb-24">
         <Link
           to="/"
           className="inline-flex items-center gap-2 text-[#a0a0a0] hover:text-white text-sm transition-colors mb-10 group"

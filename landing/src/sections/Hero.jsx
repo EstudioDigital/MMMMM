@@ -127,13 +127,14 @@ export default function Hero() {
       {/* Radial glow */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#25D366]/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <motion.div style={{ y }} className="relative max-w-6xl mx-auto px-6 py-24 grid md:grid-cols-2 gap-16 items-center w-full">
+      <motion.div style={{ y }} className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 md:py-24 flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-16 items-center w-full">
         {/* Left: copy */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 text-center lg:text-left">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="flex justify-center lg:justify-start"
           >
             <span className="inline-flex items-center gap-2 text-sm font-medium text-[#25D366] bg-[#25D366]/10 border border-[#25D366]/20 rounded-full px-4 py-1.5">
               El socio digital de tu negocio
@@ -144,7 +145,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-6xl font-semibold text-white leading-[1.1] tracking-tight"
+            className="text-4xl sm:text-5xl md:text-6xl font-semibold text-white leading-[1.1] tracking-tight"
           >
             Tu negocio,<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#25D366] to-[#128C7E]">
@@ -156,7 +157,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-[#a0a0a0] text-lg leading-relaxed max-w-lg"
+            className="text-[#a0a0a0] text-base md:text-lg leading-relaxed max-w-lg mx-auto lg:mx-0"
           >
             MateBot automatiza tu WhatsApp. Atiende clientes, agenda turnos, gestiona pedidos y lleva las cuentas — sin que vos hagas nada.
           </motion.p>
@@ -165,23 +166,23 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-wrap gap-3 pt-2"
+            className="flex flex-col sm:flex-row gap-3 pt-2 justify-center lg:justify-start"
           >
             <a
               href={`${PANEL_URL}/login`}
-              className="bg-[#25D366] hover:bg-[#20c05a] text-black font-semibold px-7 py-3.5 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-[#25D366]/25"
+              className="w-full sm:w-auto bg-[#25D366] hover:bg-[#20c05a] text-black font-semibold px-7 py-3.5 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-[#25D366]/25 text-center"
             >
               Iniciar Sesión
             </a>
             <a
               href={`${PANEL_URL}/register`}
-              className="border border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-black font-semibold px-7 py-3.5 rounded-xl transition-all duration-200"
+              className="w-full sm:w-auto border border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-black font-semibold px-7 py-3.5 rounded-xl transition-all duration-200 text-center"
             >
               Registrarse
             </a>
             <a
               href="#como-funciona"
-              className="border border-white/15 hover:border-white/30 text-white font-medium px-7 py-3.5 rounded-xl transition-colors"
+              className="w-full sm:w-auto border border-white/15 hover:border-white/30 text-white font-medium px-7 py-3.5 rounded-xl transition-colors text-center"
             >
               Ver demo
             </a>
@@ -191,7 +192,7 @@ export default function Hero() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.5 }}
-            className="flex items-center gap-6 pt-2"
+            className="flex items-center gap-6 pt-2 justify-center lg:justify-start"
           >
             {[
               { value: '500+', label: 'negocios activos' },
@@ -211,6 +212,7 @@ export default function Hero() {
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
+          className="w-full max-w-xs sm:max-w-sm mx-auto lg:max-w-none"
         >
           <ChatMockup />
         </motion.div>

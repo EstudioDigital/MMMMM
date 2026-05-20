@@ -13,7 +13,7 @@ const STATUS = {
 }
 
 const DAY_NAMES     = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0] // Lun→Sáb→Dom
+const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
 const DURATION_OPTIONS = [15, 20, 30, 45, 60, 90, 120]
 
 const DEFAULT_HOURS = [0, 1, 2, 3, 4, 5, 6].map((d) => ({
@@ -52,7 +52,6 @@ export default function Appointments() {
   const [hours, setHours] = useState(DEFAULT_HOURS)
   const [saved, setSaved] = useState(false)
 
-  // ── Turnos próximos ────────────────────────────────────────────────────────
   const { data: appointments = [] } = useQuery({
     queryKey: ['appointments', account?.id],
     queryFn: () => getAppointments(account.id).then((r) => r.data),
@@ -64,7 +63,6 @@ export default function Appointments() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['appointments', account.id] }),
   })
 
-  // ── Horarios ───────────────────────────────────────────────────────────────
   const { data: hoursData } = useQuery({
     queryKey: ['business-hours', account?.id],
     queryFn: () => getBusinessHours(account.id).then((r) => r.data),
@@ -94,7 +92,7 @@ export default function Appointments() {
       <h2 className="text-lg font-semibold text-text-primary">Turnos</h2>
 
       {/* Tab nav */}
-      <div className="flex gap-1 bg-card border border-card-border rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-card border border-card-border rounded-lg p-1 w-full sm:w-fit overflow-x-auto scrollbar-hide">
         {[
           { id: 'upcoming', label: 'Turnos próximos' },
           { id: 'hours',    label: 'Configurar horarios' },
@@ -102,7 +100,7 @@ export default function Appointments() {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`px-4 py-1.5 text-sm rounded-md transition-colors ${
+            className={`flex-1 sm:flex-none px-4 py-1.5 text-sm rounded-md transition-colors whitespace-nowrap ${
               tab === id
                 ? 'bg-accent text-white font-medium'
                 : 'text-text-secondary hover:text-text-primary'
@@ -115,67 +113,113 @@ export default function Appointments() {
 
       {/* ── Tab: Turnos próximos ── */}
       {tab === 'upcoming' && (
-        <div className="bg-card border border-card-border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-card-border">
-                {['Cliente', 'Fecha y hora', 'Servicio', 'Estado', ''].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-text-secondary uppercase tracking-wide">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {appointments.map((appt) => (
-                <tr key={appt.id} className="border-b border-card-border/40 hover:bg-white/[0.02]">
-                  <td className="px-4 py-3">
+        <>
+          {/* Mobile: cards */}
+          <div className="lg:hidden space-y-3">
+            {appointments.map((appt) => (
+              <div key={appt.id} className="bg-card border border-card-border rounded-xl p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
                     <p className="font-medium text-text-primary">{appt.client?.name ?? '—'}</p>
                     <p className="text-xs text-text-secondary">{appt.client?.phone}</p>
-                  </td>
-                  <td className="px-4 py-3 text-text-primary">
-                    {format(new Date(appt.datetime), "EEEE d 'de' MMMM 'a las' HH:mm", { locale: es })}
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">{appt.service ?? '—'}</td>
-                  <td className="px-4 py-3"><Badge status={appt.status} /></td>
-                  <td className="px-4 py-3">
-                    {appt.status === 'confirmed' && (
-                      <div className="flex items-center gap-1 justify-end">
-                        <button
-                          onClick={() => changeStatus({ id: appt.id, status: 'completed' })}
-                          title="Marcar como completado"
-                          className="p-1.5 text-text-secondary hover:text-emerald-400 rounded transition-colors"
-                        >
-                          <Check size={14} />
-                        </button>
-                        <button
-                          onClick={() => changeStatus({ id: appt.id, status: 'cancelled' })}
-                          title="Cancelar turno"
-                          className="p-1.5 text-text-secondary hover:text-red-400 rounded transition-colors"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </td>
+                  </div>
+                  <Badge status={appt.status} />
+                </div>
+                <p className="text-sm text-text-primary mb-1">
+                  {format(new Date(appt.datetime), "EEEE d 'de' MMMM 'a las' HH:mm", { locale: es })}
+                </p>
+                {appt.service && (
+                  <p className="text-xs text-text-secondary mb-3">Servicio: {appt.service}</p>
+                )}
+                {appt.status === 'confirmed' && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => changeStatus({ id: appt.id, status: 'completed' })}
+                      className="flex-1 py-2 text-xs text-emerald-400 border border-emerald-400/20 rounded-lg bg-emerald-400/10 hover:bg-emerald-400/20 transition-colors"
+                    >
+                      ✓ Completado
+                    </button>
+                    <button
+                      onClick={() => changeStatus({ id: appt.id, status: 'cancelled' })}
+                      className="flex-1 py-2 text-xs text-red-400 border border-red-400/20 rounded-lg bg-red-400/10 hover:bg-red-400/20 transition-colors"
+                    >
+                      ✕ Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {appointments.length === 0 && (
+              <div className="bg-card border border-card-border rounded-lg p-10 text-center text-sm text-text-secondary">
+                Sin turnos en los próximos 7 días
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden lg:block bg-card border border-card-border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-card-border">
+                  {['Cliente', 'Fecha y hora', 'Servicio', 'Estado', ''].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-medium text-text-secondary uppercase tracking-wide">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-              {appointments.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-text-secondary">
-                    Sin turnos en los próximos 7 días
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {appointments.map((appt) => (
+                  <tr key={appt.id} className="border-b border-card-border/40 hover:bg-white/[0.02]">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-text-primary">{appt.client?.name ?? '—'}</p>
+                      <p className="text-xs text-text-secondary">{appt.client?.phone}</p>
+                    </td>
+                    <td className="px-4 py-3 text-text-primary">
+                      {format(new Date(appt.datetime), "EEEE d 'de' MMMM 'a las' HH:mm", { locale: es })}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">{appt.service ?? '—'}</td>
+                    <td className="px-4 py-3"><Badge status={appt.status} /></td>
+                    <td className="px-4 py-3">
+                      {appt.status === 'confirmed' && (
+                        <div className="flex items-center gap-1 justify-end">
+                          <button
+                            onClick={() => changeStatus({ id: appt.id, status: 'completed' })}
+                            title="Marcar como completado"
+                            className="p-1.5 text-text-secondary hover:text-emerald-400 rounded transition-colors"
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            onClick={() => changeStatus({ id: appt.id, status: 'cancelled' })}
+                            title="Cancelar turno"
+                            className="p-1.5 text-text-secondary hover:text-red-400 rounded transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {appointments.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-text-secondary">
+                      Sin turnos en los próximos 7 días
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* ── Tab: Configurar horarios ── */}
       {tab === 'hours' && (
         <div className="bg-card border border-card-border rounded-lg overflow-hidden">
-          <div className="grid grid-cols-[160px_80px_1fr] gap-4 px-5 py-3 border-b border-card-border">
+          {/* Desktop header */}
+          <div className="hidden lg:grid grid-cols-[160px_80px_1fr] gap-4 px-5 py-3 border-b border-card-border">
             <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">Día</span>
             <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">Abierto</span>
             <span className="text-xs font-medium text-text-secondary uppercase tracking-wide">Horario y duración de turno</span>
@@ -184,53 +228,81 @@ export default function Appointments() {
           {DISPLAY_ORDER.map((dayOfWeek) => {
             const day = hours.find((h) => h.dayOfWeek === dayOfWeek) ?? DEFAULT_HOURS.find((h) => h.dayOfWeek === dayOfWeek)
             return (
-              <div
-                key={dayOfWeek}
-                className="grid grid-cols-[160px_80px_1fr] gap-4 items-center px-5 py-3.5 border-b border-card-border/40 last:border-0"
-              >
-                <span className="text-sm font-medium text-text-primary">{DAY_NAMES[dayOfWeek]}</span>
-
-                <Toggle
-                  checked={day.isOpen}
-                  onChange={() => updateDay(dayOfWeek, 'isOpen', !day.isOpen)}
-                />
-
-                {day.isOpen ? (
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <div className="flex items-center gap-2">
+              <div key={dayOfWeek} className="border-b border-card-border/40 last:border-0 px-4 lg:px-5 py-3 lg:py-3.5">
+                {/* Mobile layout */}
+                <div className="flex items-center justify-between mb-2 lg:hidden">
+                  <span className="text-sm font-medium text-text-primary">{DAY_NAMES[dayOfWeek]}</span>
+                  <Toggle
+                    checked={day.isOpen}
+                    onChange={() => updateDay(dayOfWeek, 'isOpen', !day.isOpen)}
+                  />
+                </div>
+                {day.isOpen && (
+                  <div className="flex flex-wrap gap-2 lg:hidden">
+                    <div className="flex items-center gap-1.5">
                       <span className="text-xs text-text-secondary">Desde</span>
-                      <input
-                        type="time"
-                        value={day.openTime}
+                      <input type="time" value={day.openTime}
                         onChange={(e) => updateDay(dayOfWeek, 'openTime', e.target.value)}
-                        className={INPUT_CLS}
-                      />
+                        className={INPUT_CLS} />
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <span className="text-xs text-text-secondary">Hasta</span>
-                      <input
-                        type="time"
-                        value={day.closeTime}
+                      <input type="time" value={day.closeTime}
                         onChange={(e) => updateDay(dayOfWeek, 'closeTime', e.target.value)}
-                        className={INPUT_CLS}
-                      />
+                        className={INPUT_CLS} />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-text-secondary">Turno cada</span>
-                      <select
-                        value={day.slotDuration}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-text-secondary">Turno</span>
+                      <select value={day.slotDuration}
                         onChange={(e) => updateDay(dayOfWeek, 'slotDuration', Number(e.target.value))}
-                        className={INPUT_CLS}
-                      >
+                        className={INPUT_CLS}>
                         {DURATION_OPTIONS.map((min) => (
-                          <option key={min} value={min}>{min} min</option>
+                          <option key={min} value={min}>{min}min</option>
                         ))}
                       </select>
                     </div>
                   </div>
-                ) : (
-                  <span className="text-sm text-text-secondary italic">Cerrado</span>
                 )}
+                {!day.isOpen && (
+                  <span className="text-xs text-text-secondary italic lg:hidden">Cerrado</span>
+                )}
+
+                {/* Desktop layout */}
+                <div className="hidden lg:grid grid-cols-[160px_80px_1fr] gap-4 items-center">
+                  <span className="text-sm font-medium text-text-primary">{DAY_NAMES[dayOfWeek]}</span>
+                  <Toggle
+                    checked={day.isOpen}
+                    onChange={() => updateDay(dayOfWeek, 'isOpen', !day.isOpen)}
+                  />
+                  {day.isOpen ? (
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-text-secondary">Desde</span>
+                        <input type="time" value={day.openTime}
+                          onChange={(e) => updateDay(dayOfWeek, 'openTime', e.target.value)}
+                          className={INPUT_CLS} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-text-secondary">Hasta</span>
+                        <input type="time" value={day.closeTime}
+                          onChange={(e) => updateDay(dayOfWeek, 'closeTime', e.target.value)}
+                          className={INPUT_CLS} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-text-secondary">Turno cada</span>
+                        <select value={day.slotDuration}
+                          onChange={(e) => updateDay(dayOfWeek, 'slotDuration', Number(e.target.value))}
+                          className={INPUT_CLS}>
+                          {DURATION_OPTIONS.map((min) => (
+                            <option key={min} value={min}>{min} min</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-text-secondary italic">Cerrado</span>
+                  )}
+                </div>
               </div>
             )
           })}
@@ -239,7 +311,7 @@ export default function Appointments() {
             <button
               onClick={() => saveHours(hours)}
               disabled={saving}
-              className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white text-sm font-medium rounded-md hover:bg-accent/90 transition-colors disabled:opacity-60"
+              className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white text-sm font-medium rounded-md hover:bg-accent/90 transition-colors disabled:opacity-60 w-full sm:w-auto justify-center sm:justify-start"
             >
               {saved && <Check size={15} weight="bold" />}
               {saved ? '¡Horarios guardados!' : saving ? 'Guardando...' : 'Guardar horarios'}

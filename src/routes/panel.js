@@ -1,7 +1,8 @@
 // Rutas del panel web — CRUD para accounts, products, appointments, rules, clients y modules
 
 import { PrismaClient } from '@prisma/client';
-import { encrypt } from '../utils/crypto.js';
+import { encrypt, decrypt } from '../utils/crypto.js';
+import { sendWhatsAppMessage } from '../utils/whatsapp.js';
 
 const prisma = new PrismaClient();
 
@@ -65,6 +66,55 @@ export default async function panelRoutes(fastify) {
       client: { id: c.id, name: c.name, phone: c.phone },
       lastMessage: c.messages[0] ?? null,
     }));
+  });
+
+  // ── Send manual message ───────────────────────────────────────────────────
+  fastify.post('/api/accounts/:id/messages/send', async (req, reply) => {
+    const { clientPhone, message } = req.body ?? {};
+    const accountId = req.params.id;
+
+    if (!clientPhone || !message) {
+      return reply.code(400).send({ error: 'clientPhone y message son requeridos' });
+    }
+
+    const account = await prisma.account.findUnique({ where: { id: accountId } });
+    if (!account) return reply.code(404).send({ error: 'Cuenta no encontrada' });
+
+    let token = process.env.META_ACCESS_TOKEN;
+    if (account.waToken) {
+      try { token = decrypt(account.waToken); } catch { token = account.waToken; }
+    }
+
+    await sendWhatsAppMessage({
+      to: clientPhone,
+      phoneNumberId: account.phoneNumberId,
+      token,
+      message: { type: 'text', body: message },
+    });
+
+    const client_ = await prisma.client.findUnique({
+      where: { accountId_phone: { accountId, phone: clientPhone } },
+    });
+    if (!client_) return reply.code(404).send({ error: 'Cliente no encontrado' });
+
+    const saved = await prisma.message.create({
+      data: {
+        accountId,
+        clientId: client_.id,
+        direction: 'out',
+        type: 'text',
+        body: message,
+        autoSent: false,
+      },
+    });
+
+    fastify.io.emit('new_message', {
+      accountId,
+      message: saved,
+      client: { id: client_.id, name: client_.name, phone: client_.phone },
+    });
+
+    return { success: true };
   });
 
   // ── Products ──────────────────────────────────────────────────────────────
@@ -223,6 +273,121 @@ export default async function panelRoutes(fastify) {
       create: { accountId, type, active },
       update: { active },
     });
+  });
+
+  // ── AI Config ─────────────────────────────────────────────────────────────
+  fastify.get('/api/accounts/:id/ai-config', async (req) => {
+    const account = await prisma.account.findUnique({
+      where: { id: req.params.id },
+      select: { aiConfig: true },
+    });
+    return account?.aiConfig ?? {};
+  });
+
+  fastify.put('/api/accounts/:id/ai-config', async (req) => {
+    const { temperature, maxTokens, customInstructions, historyLength } = req.body ?? {};
+    const aiConfig = {};
+    if (temperature     !== undefined) aiConfig.temperature        = temperature;
+    if (maxTokens       !== undefined) aiConfig.maxTokens          = maxTokens;
+    if (customInstructions !== undefined) aiConfig.customInstructions = customInstructions;
+    if (historyLength   !== undefined) aiConfig.historyLength      = historyLength;
+
+    const updated = await prisma.account.update({
+      where: { id: req.params.id },
+      data: { aiConfig },
+      select: { aiConfig: true },
+    });
+    return updated.aiConfig;
+  });
+
+  // ── Weekly report (Pro/Business only) ────────────────────────────────────
+  fastify.get('/api/accounts/:id/reports/weekly', async (req, reply) => {
+    const account = await prisma.account.findUnique({
+      where: { id: req.params.id },
+      include: { user: { select: { plan: true } } },
+    });
+    if (!['pro', 'business'].includes(account?.user?.plan)) {
+      return reply.code(403).send({ error: 'Esta función requiere el plan Pro o Business' });
+    }
+
+    const accountId = req.params.id;
+    const now = new Date();
+    const thisWeekStart = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
+    const lastWeekStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    const [msgEsta, msgAnterior, cliEsta, cliAnterior, aptEsta, aptAnterior] = await Promise.all([
+      prisma.message.count({ where: { accountId, direction: 'in', createdAt: { gte: thisWeekStart } } }),
+      prisma.message.count({ where: { accountId, direction: 'in', createdAt: { gte: lastWeekStart, lt: thisWeekStart } } }),
+      prisma.client.count({ where: { accountId, createdAt: { gte: thisWeekStart } } }),
+      prisma.client.count({ where: { accountId, createdAt: { gte: lastWeekStart, lt: thisWeekStart } } }),
+      prisma.appointment.count({ where: { accountId, datetime: { gte: thisWeekStart }, status: { in: ['confirmed', 'completed'] } } }),
+      prisma.appointment.count({ where: { accountId, datetime: { gte: lastWeekStart, lt: thisWeekStart }, status: { in: ['confirmed', 'completed'] } } }),
+    ]);
+
+    return {
+      period: { from: thisWeekStart.toISOString(), to: now.toISOString() },
+      mensajes: { estaSemana: msgEsta,  semanaAnterior: msgAnterior },
+      clientes: { estaSemana: cliEsta,  semanaAnterior: cliAnterior },
+      turnos:   { estaSemana: aptEsta,  semanaAnterior: aptAnterior },
+    };
+  });
+
+  // ── Notification settings ────────────────────────────────────────────────
+  fastify.put('/api/accounts/:id/notification-settings', async (req) => {
+    const { notifyPhone1, notifyPhone2, reportEnabled } = req.body ?? {};
+    return prisma.account.update({
+      where: { id: req.params.id },
+      data: {
+        ...(notifyPhone1  !== undefined && { notifyPhone1:  notifyPhone1  || null }),
+        ...(notifyPhone2  !== undefined && { notifyPhone2:  notifyPhone2  || null }),
+        ...(reportEnabled !== undefined && { reportEnabled }),
+      },
+      select: { notifyPhone1: true, notifyPhone2: true, reportEnabled: true },
+    });
+  });
+
+  // ── Reports ───────────────────────────────────────────────────────────────
+  fastify.get('/api/accounts/:id/reports', async (req, reply) => {
+    const account = await prisma.account.findUnique({
+      where: { id: req.params.id },
+      include: { user: { select: { plan: true } } },
+    });
+    if (!['pro', 'business'].includes(account?.user?.plan)) {
+      return reply.code(403).send({ error: 'Esta función requiere el plan Pro o Business' });
+    }
+    return prisma.report.findMany({
+      where: { accountId: req.params.id },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      select: { id: true, type: true, filename: true, createdAt: true },
+    });
+  });
+
+  fastify.get('/api/accounts/:id/reports/:reportId/download', async (req, reply) => {
+    const report = await prisma.report.findFirst({
+      where: { id: req.params.reportId, accountId: req.params.id },
+    });
+    if (!report) return reply.code(404).send('Not found');
+    const pdfBuffer = Buffer.from(report.data, 'base64');
+    reply.header('Content-Type', 'application/pdf');
+    reply.header('Content-Disposition', `attachment; filename="${report.filename}"`);
+    return reply.send(pdfBuffer);
+  });
+
+  // ── Cancel subscription ───────────────────────────────────────────────────
+  fastify.post('/api/accounts/:id/cancel-subscription', async (req, reply) => {
+    const account = await prisma.account.findUnique({
+      where: { id: req.params.id },
+      include: { user: { select: { id: true } } },
+    });
+    if (!account?.user) return reply.code(404).send({ error: 'Cuenta no encontrada' });
+
+    await prisma.user.update({
+      where: { id: account.user.id },
+      data: { plan: 'starter' },
+    });
+
+    return { success: true, message: 'Suscripción cancelada. Tu cuenta ahora está en el plan Starter.' };
   });
 
   // ── Verify WhatsApp connection ─────────────────────────────────────────────

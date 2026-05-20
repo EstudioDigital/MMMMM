@@ -2,6 +2,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { sendWhatsAppMessage } from '../utils/whatsapp.js';
+import { notifyOwner } from '../utils/notifyOwner.js';
 
 const prisma = new PrismaClient();
 
@@ -234,6 +235,10 @@ export async function handleAppointment(intent, message, account, client_) {
 
     scheduleReminder(appointment, account);
 
+    notifyOwner(account, { type: 'NEW_APPOINTMENT', client: client_, appointment }).catch((err) =>
+      console.error('[appointments] Error notificando al dueño:', err.message),
+    )
+
     return {
       type: 'text',
       body: `¡Turno confirmado! Te esperamos el ${formatDatetimeLong(selectedSlot)}. Si necesitás cancelar, escribí "cancelar turno".`,
@@ -249,6 +254,10 @@ export async function handleAppointment(intent, message, account, client_) {
     }
 
     await prisma.appointment.update({ where: { id: appt.id }, data: { status: 'cancelled' } });
+
+    notifyOwner(account, { type: 'CANCELLED_APPOINTMENT', client: client_, appointment: appt }).catch((err) =>
+      console.error('[appointments] Error notificando cancelación:', err.message),
+    )
 
     return { type: 'text', body: `Tu turno del ${formatDatetimeLong(new Date(appt.datetime))} fue cancelado. Podés reservar otro cuando quieras.` };
   }

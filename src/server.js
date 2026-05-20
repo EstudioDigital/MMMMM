@@ -14,6 +14,7 @@ import { sendWhatsAppMessage } from './utils/whatsapp.js'
 import { verifyJWT } from './middleware/auth.js'
 import panelRoutes from './routes/panel.js'
 import authRoutes from './routes/auth.js'
+import { sendDailyReports, sendWeeklyReports } from './jobs/dailyReport.js'
 
 const prisma = new PrismaClient()
 
@@ -97,6 +98,8 @@ io.on('connection', (socket) => {
   fastify.log.info(`Panel conectado via Socket.io [${socket.id}]`)
   socket.on('disconnect', () => fastify.log.info(`Panel desconectado [${socket.id}]`))
 })
+
+fastify.decorate('io', io)
 
 // Parser que conserva rawBody para verificar firma HMAC de Meta
 fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
@@ -203,6 +206,7 @@ async function processMessage(msg, phoneNumberId, contacts) {
     include: {
       modules: true,
       rules: { where: { active: true }, orderBy: { priority: 'asc' } },
+      user: { select: { plan: true } },
     },
   })
 
@@ -267,10 +271,46 @@ async function processMessage(msg, phoneNumberId, contacts) {
   })
 }
 
+function scheduleDailyReport() {
+  const now = new Date()
+  const target = new Date()
+  target.setHours(23, 59, 0, 0)
+
+  if (now > target) target.setDate(target.getDate() + 1)
+
+  const msUntilReport = target.getTime() - now.getTime()
+
+  setTimeout(async () => {
+    await sendDailyReports().catch((err) => fastify.log.error({ err }, 'Error en reporte diario'))
+    scheduleDailyReport()
+  }, msUntilReport)
+
+  fastify.log.info(`[REPORT] Próximo reporte en ${Math.round(msUntilReport / 1000 / 60)} minutos`)
+}
+
+function scheduleWeeklyReport() {
+  const now = new Date()
+  const target = new Date()
+  const daysUntilMonday = (1 + 7 - now.getDay()) % 7 || 7
+  target.setDate(now.getDate() + daysUntilMonday)
+  target.setHours(8, 0, 0, 0)
+
+  const msUntil = target.getTime() - now.getTime()
+
+  setTimeout(async () => {
+    await sendWeeklyReports().catch((err) => fastify.log.error({ err }, 'Error en reporte semanal'))
+    scheduleWeeklyReport()
+  }, msUntil)
+
+  fastify.log.info(`[REPORT] Próximo reporte semanal en ${Math.round(msUntil / 1000 / 60 / 60)} horas`)
+}
+
 // Arranque del servidor
 const start = async () => {
   try {
     await fastify.listen({ port: PORT, host: '0.0.0.0' })
+    scheduleDailyReport()
+    scheduleWeeklyReport()
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)

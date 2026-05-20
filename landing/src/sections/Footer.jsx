@@ -2,18 +2,18 @@ import { Link } from 'react-router-dom'
 
 export default function Footer() {
   return (
-    <footer className="bg-[#111111] border-t border-white/5 py-12 px-6">
+    <footer className="bg-[#111111] border-t border-white/5 py-10 md:py-12 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 mb-10">
-          <div>
-            <div className="flex items-center gap-2 text-white font-semibold text-lg mb-2">
+          <div className="text-center md:text-left w-full md:w-auto">
+            <div className="flex items-center justify-center md:justify-start gap-2 text-white font-semibold text-lg mb-2">
               <span className="text-2xl">🧉</span>
               <span>MateBot</span>
             </div>
             <p className="text-[#a0a0a0] text-sm">El socio digital de tu negocio</p>
           </div>
 
-          <div className="flex flex-wrap gap-6">
+          <div className="flex flex-wrap justify-center md:justify-start gap-4 md:gap-6 w-full md:w-auto">
             {[
               { label: 'Cómo funciona', href: '#como-funciona' },
               { label: 'Módulos', href: '#modulos' },
@@ -36,7 +36,7 @@ export default function Footer() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 justify-center md:justify-start w-full md:w-auto">
             <a
               href="https://instagram.com"
               target="_blank"
@@ -64,7 +64,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="border-t border-white/5 pt-6 flex flex-col items-center md:flex-row md:justify-between gap-3 text-center md:text-left">
           <p className="text-[#a0a0a0] text-xs">
             © 2025 MateBot by{' '}
             <a href="mailto:NuestroEstudioDigital@gmail.com" className="hover:text-white transition-colors">

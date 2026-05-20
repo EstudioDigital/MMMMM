@@ -2,6 +2,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { sendWhatsAppMessage } from '../utils/whatsapp.js';
+import { notifyOwner } from '../utils/notifyOwner.js';
 
 const prisma = new PrismaClient();
 
@@ -276,20 +277,15 @@ export async function handleCatalog(intent, message, account, client_) {
         },
       });
 
-      // Notificar al dueño del negocio
-      try {
-        await sendWhatsAppMessage({
-          to: account.ownerPhone,
-          phoneNumberId: account.phoneNumberId,
-          token: account.waToken,
-          message: {
-            type: 'text',
-            body: `Nuevo pedido de ${client_.name ?? phone} (+${phone}):\n${summary}\nTotal: ${total}\nEntrega: ${deliveryType}`,
-          },
-        });
-      } catch (err) {
-        console.error('[catalog] Error notificando al dueño:', err.message);
-      }
+      notifyOwner(account, {
+        type: 'NEW_ORDER',
+        client: client_,
+        order: {
+          items: session.cart,
+          total: cartTotal(session.cart),
+          deliveryType: isPickup ? 'retiro' : 'delivery',
+        },
+      }).catch((err) => console.error('[catalog] Error notificando al dueño:', err.message))
 
       catalogSessions.delete(sessionKey);
 

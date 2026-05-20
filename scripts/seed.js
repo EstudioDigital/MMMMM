@@ -71,6 +71,9 @@ async function main() {
       plan:         'pro',
       businessInfo: 'Verdulería de barrio en Córdoba. Vendemos frutas y verduras frescas todos los días. Pedidos por WhatsApp con envío a domicilio.',
       faq:          '¿Tienen envío? Sí, envíos en Córdoba capital. Mínimo $2000.\n¿Cuándo abren? Lunes a sábado de 8 a 20hs.\n¿Aceptan transferencia? Sí, también efectivo y MercadoPago.',
+      notifyPhone1: DEMO_OWNER_PHONE,
+      notifyPhone2: null,
+      reportEnabled: true,
     },
   })
   console.log(`   ✅ Account: ${account.name}`)
