@@ -17,6 +17,7 @@ model User {
   accountId   String?   @unique
   plan        String    @default("trial")
   trialEndsAt DateTime?
+  resetNonce  String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

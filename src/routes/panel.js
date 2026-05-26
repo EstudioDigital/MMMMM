@@ -7,6 +7,14 @@ import { sendWhatsAppMessage } from '../utils/whatsapp.js';
 const prisma = new PrismaClient();
 
 export default async function panelRoutes(fastify) {
+  // ── Tenant isolation: req.params.id must match the JWT's accountId ─────────
+  fastify.addHook('preHandler', async (req, reply) => {
+    const id = req.params?.id
+    if (id && req.user?.accountId && id !== req.user.accountId) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+  })
+
   // ── Accounts ──────────────────────────────────────────────────────────────
   fastify.get('/api/accounts', async () =>
     prisma.account.findMany({
@@ -108,7 +116,7 @@ export default async function panelRoutes(fastify) {
       },
     });
 
-    fastify.io.emit('new_message', {
+    fastify.io.to('account:' + accountId).emit('new_message', {
       accountId,
       message: saved,
       client: { id: client_.id, name: client_.name, phone: client_.phone },

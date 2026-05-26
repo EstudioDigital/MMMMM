@@ -3,6 +3,7 @@
 import { PrismaClient } from '@prisma/client';
 import { sendWhatsAppMessage } from '../utils/whatsapp.js';
 import { notifyOwner } from '../utils/notifyOwner.js';
+import { decrypt } from '../utils/crypto.js';
 
 const prisma = new PrismaClient();
 
@@ -135,10 +136,15 @@ export function scheduleReminder(appointment, account) {
       const client_ = await prisma.client.findUnique({ where: { id: appt.clientId } });
       if (!client_) return;
 
+      let reminderToken = process.env.META_ACCESS_TOKEN
+      if (account.waToken) {
+        try { reminderToken = decrypt(account.waToken) } catch { reminderToken = account.waToken }
+      }
+
       await sendWhatsAppMessage({
         to: client_.phone,
         phoneNumberId: account.phoneNumberId,
-        token: account.waToken,
+        token: reminderToken,
         message: {
           type: 'template',
           templateName: 'appointment_reminder',

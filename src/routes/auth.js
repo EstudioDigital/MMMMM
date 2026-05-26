@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { randomBytes } from 'node:crypto'
 import bcrypt from 'bcrypt'
 import { verifyJWT } from '../middleware/auth.js'
 import { encrypt } from '../utils/crypto.js'
@@ -9,6 +10,10 @@ const prisma = new PrismaClient()
 const SALT_ROUNDS = 10
 const JWT_EXPIRES = process.env.JWT_EXPIRES_IN ?? '7d'
 
+
+function isStrongPassword(pw) {
+  return typeof pw === 'string' && /^(?=.*[a-z])(?=.*[A-Z])(?=.*d).{8,}$/.test(pw)
+}
 export default async function authRoutes(fastify) {
   // POST /api/auth/register
   fastify.post('/api/auth/register', {
@@ -24,8 +29,8 @@ export default async function authRoutes(fastify) {
     if (!isValidEmail(cleanEmail)) {
       return reply.code(400).send({ error: 'Email inválido' })
     }
-    if (password.length < 8) {
-      return reply.code(400).send({ error: 'La contraseña debe tener al menos 8 caracteres' })
+    if (!isStrongPassword(password)) {
+      return reply.code(400).send({ error: 'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.' })
     }
     if (cleanName.length < 2) {
       return reply.code(400).send({ error: 'El nombre debe tener al menos 2 caracteres' })
@@ -112,8 +117,10 @@ export default async function authRoutes(fastify) {
     const user = await prisma.user.findUnique({ where: { email } })
 
     if (user) {
+      const nonce = randomBytes(16).toString('hex')
+      await prisma.user.update({ where: { id: user.id }, data: { resetNonce: nonce } })
       const resetToken = fastify.jwt.sign(
-        { userId: user.id, purpose: 'reset' },
+        { userId: user.id, purpose: 'reset', nonce },
         { expiresIn: '1h' },
       )
       // En producción enviar email. En dev → loguear el link
@@ -128,8 +135,8 @@ export default async function authRoutes(fastify) {
   fastify.post('/api/auth/reset', async (req, reply) => {
     const { token, password } = req.body ?? {}
 
-    if (!token || !password || password.length < 8) {
-      return reply.code(400).send({ error: 'Token y contraseña (mínimo 8 caracteres) requeridos' })
+    if (!token || !isStrongPassword(password)) {
+      return reply.code(400).send({ error: 'Token y contraseña válida requeridos (mín. 8 caracteres, mayúscula, minúscula y número)' })
     }
 
     let payload
@@ -139,12 +146,17 @@ export default async function authRoutes(fastify) {
       return reply.code(400).send({ error: 'Token inválido o expirado' })
     }
 
-    if (payload.purpose !== 'reset') {
+    if (payload.purpose !== 'reset' || !payload.nonce) {
       return reply.code(400).send({ error: 'Token inválido' })
     }
 
+    const userForReset = await prisma.user.findUnique({ where: { id: payload.userId }, select: { resetNonce: true } })
+    if (!userForReset || userForReset.resetNonce !== payload.nonce) {
+      return reply.code(400).send({ error: 'Token ya utilizado o inválido' })
+    }
+
     const hashed = await bcrypt.hash(password, SALT_ROUNDS)
-    await prisma.user.update({ where: { id: payload.userId }, data: { password: hashed } })
+    await prisma.user.update({ where: { id: payload.userId }, data: { password: hashed, resetNonce: null } })
 
     return reply.send({ ok: true })
   })

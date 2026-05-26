@@ -15,8 +15,12 @@ import { verifyJWT } from './middleware/auth.js'
 import panelRoutes from './routes/panel.js'
 import authRoutes from './routes/auth.js'
 import { sendDailyReports, sendWeeklyReports } from './jobs/dailyReport.js'
+import Redis from 'ioredis'
 
 const prisma = new PrismaClient()
+const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379'
+const rateLimitRedis = new Redis(REDIS_URL, { lazyConnect: true, enableOfflineQueue: false })
+rateLimitRedis.on('error', () => {}) // handled by fallback to in-memory
 
 const PORT = parseInt(process.env.PORT ?? '3000', 10)
 const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN ?? 'mate_secret_xyz'
@@ -32,6 +36,10 @@ if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.length !== 64) {
   console.error("Generá uno con: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"")
   process.exit(1)
 }
+if (!process.env.META_APP_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('ERROR: META_APP_SECRET es obligatorio en producción para verificar firmas de Meta')
+  process.exit(1)
+}
 
 const JWT_SECRET = process.env.JWT_SECRET
 
@@ -43,6 +51,7 @@ const fastify = Fastify({
 
 // ── Security headers ─────────────────────────────────────────────────────────
 fastify.addHook('onSend', (_req, reply, _payload, done) => {
+  reply.header('Content-Security-Policy', "default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'")
   reply.header('X-Content-Type-Options', 'nosniff')
   reply.header('X-Frame-Options', 'DENY')
   reply.header('X-XSS-Protection', '1; mode=block')
@@ -61,7 +70,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 await fastify.register(fastifyCors, {
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (origin && allowedOrigins.includes(origin)) {
       cb(null, true)
     } else {
       cb(new Error('Not allowed by CORS'), false)
@@ -76,6 +85,7 @@ await fastify.register(fastifyJwt, { secret: JWT_SECRET })
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
 await fastify.register(fastifyRateLimit, {
+  redis: rateLimitRedis,
   global: true,
   max: 100,
   timeWindow: '1 minute',
@@ -94,9 +104,23 @@ const io = new SocketIO(fastify.server, {
   },
 })
 
+// JWT middleware: solo acepta conexiones con token válido
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token
+  if (!token) return next(new Error('Unauthorized'))
+  try {
+    const payload = fastify.jwt.verify(token)
+    socket.accountId = payload.accountId
+    next()
+  } catch {
+    next(new Error('Unauthorized'))
+  }
+})
+
 io.on('connection', (socket) => {
-  fastify.log.info(`Panel conectado via Socket.io [${socket.id}]`)
-  socket.on('disconnect', () => fastify.log.info(`Panel desconectado [${socket.id}]`))
+  if (socket.accountId) socket.join('account:' + socket.accountId)
+  fastify.log.info('Panel conectado via Socket.io [' + socket.id + '] account:' + socket.accountId)
+  socket.on('disconnect', () => fastify.log.info('Panel desconectado [' + socket.id + ']'))
 })
 
 fastify.decorate('io', io)
@@ -237,7 +261,7 @@ async function processMessage(msg, phoneNumberId, contacts) {
 
   fastify.log.info({ from: senderPhone, body: savedMsg.body }, 'Mensaje recibido')
 
-  io.emit('new_message', {
+  io.to('account:' + account.id).emit('new_message', {
     accountId: account.id,
     message: savedMsg,
     client: { id: client_.id, name: client_.name, phone: client_.phone },
