@@ -40,8 +40,8 @@ function ProductModal({ product, onClose, onSave, isPending }) {
     })
   }
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-card border border-card-border rounded-lg w-full max-w-md shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-card border border-card-border rounded-t-2xl sm:rounded-lg w-full sm:max-w-md shadow-2xl">
         <div className="px-5 py-4 border-b border-card-border">
           <h3 className="font-semibold text-text-primary">
             {isEdit ? 'Editar producto' : 'Agregar producto'}
@@ -100,7 +100,7 @@ export default function Catalog() {
   useEffect(() => { document.title = 'Catálogo — MateBot' }, [])
   const account = useStore((s) => s.account)
   const qc = useQueryClient()
-  const [modal, setModal] = useState(null) // null | {} (new) | product (edit)
+  const [modal, setModal] = useState(null)
 
   const { data: products = [] } = useQuery({
     queryKey: ['products', account?.id],
@@ -132,12 +132,64 @@ export default function Catalog() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-text-primary">Catálogo</h2>
-        <button onClick={() => setModal({})} className="flex items-center gap-2 px-3 py-2 bg-accent text-white text-sm rounded-md hover:bg-accent/90 transition-colors">
+        <button
+          onClick={() => setModal({})}
+          className="hidden lg:flex items-center gap-2 px-3 py-2 bg-accent text-white text-sm rounded-md hover:bg-accent/90 transition-colors"
+        >
           <Plus size={15} /> Agregar producto
         </button>
       </div>
 
-      <div className="bg-card border border-card-border rounded-lg overflow-hidden">
+      {/* Mobile: cards */}
+      <div className="lg:hidden space-y-3">
+        {products.map((p) => (
+          <div key={p.id} className="bg-card border border-card-border rounded-xl p-4 flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-text-primary">{p.name}</p>
+              {p.description && (
+                <p className="text-xs text-text-secondary mt-0.5 truncate">{p.description}</p>
+              )}
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className="text-accent font-mono text-sm font-semibold">
+                  {formatPrice(p.price)}{p.unit ? `/${p.unit}` : ''}
+                </span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  p.available
+                    ? 'bg-emerald-500/15 text-emerald-400'
+                    : 'bg-red-500/15 text-red-400'
+                }`}>
+                  {p.available ? 'Disponible' : 'Sin stock'}
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2 flex-shrink-0">
+              <Toggle checked={p.available} onChange={() => toggleAvailable(p)} />
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setModal(p)}
+                  className="p-2 text-text-secondary hover:text-text-primary rounded-md transition-colors"
+                >
+                  <PencilSimple size={16} />
+                </button>
+                <button
+                  onClick={() => remove(p.id)}
+                  className="p-2 text-text-secondary hover:text-red-400 rounded-md transition-colors"
+                >
+                  <Trash size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {products.length === 0 && (
+          <div className="bg-card border border-card-border rounded-lg p-10 text-center text-sm text-text-secondary">
+            Sin productos. Tocá el + para agregar uno.
+          </div>
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden lg:block bg-card border border-card-border rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-card-border">
@@ -178,6 +230,14 @@ export default function Catalog() {
           </tbody>
         </table>
       </div>
+
+      {/* FAB — mobile only */}
+      <button
+        onClick={() => setModal({})}
+        className="lg:hidden fixed bottom-6 right-6 w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-xl z-30 text-white hover:bg-accent/90 transition-colors"
+      >
+        <Plus size={24} weight="bold" />
+      </button>
 
       {modal !== null && (
         <ProductModal

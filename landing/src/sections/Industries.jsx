@@ -111,7 +111,7 @@ export default function Industries() {
   const industry = industries[active]
 
   return (
-    <section className="py-24 px-6">
+    <section className="py-16 md:py-24 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -127,12 +127,12 @@ export default function Industries() {
         </motion.div>
 
         {/* Tabs */}
-        <div className="flex flex-wrap justify-center gap-2 mb-10">
+        <div className="flex overflow-x-auto scrollbar-hide gap-2 mb-10 pb-1 justify-start sm:justify-center">
           {industries.map((ind, i) => (
             <button
               key={i}
               onClick={() => setActive(i)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                 active === i
                   ? 'bg-[#25D366] text-black'
                   : 'bg-[#161616] border border-white/8 text-[#a0a0a0] hover:text-white hover:border-white/15'
@@ -152,7 +152,7 @@ export default function Industries() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.3 }}
-            className="grid md:grid-cols-2 gap-8 items-start bg-[#111111] border border-white/6 rounded-2xl p-8"
+            className="grid md:grid-cols-2 gap-6 md:gap-8 items-start bg-[#111111] border border-white/6 rounded-2xl p-5 md:p-8"
           >
             <div>
               <h3 className="text-white font-semibold text-xl mb-1">

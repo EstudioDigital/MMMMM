@@ -76,24 +76,33 @@ export default function Navbar() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden bg-[#111111] border-t border-white/5 overflow-hidden"
           >
-            <div className="px-6 py-4 flex flex-col gap-4">
+            <div className="px-6 py-4 flex flex-col gap-3">
               {links.map(l => (
                 <a
                   key={l.href}
                   href={l.href}
                   onClick={() => setMobileOpen(false)}
-                  className="text-[#a0a0a0] hover:text-white transition-colors text-sm font-medium py-1"
+                  className="text-[#a0a0a0] hover:text-white transition-colors text-base font-medium py-2 border-b border-white/5 last:border-0"
                 >
                   {l.label}
                 </a>
               ))}
-              <a
-                href="#precios"
-                onClick={() => setMobileOpen(false)}
-                className="bg-[#25D366] hover:bg-[#20c05a] text-black font-semibold text-sm px-5 py-2.5 rounded-lg transition-colors text-center mt-2"
-              >
-                Empezar gratis
-              </a>
+              <div className="flex flex-col gap-3 pt-2">
+                <a
+                  href={`${PANEL_URL}/login`}
+                  onClick={() => setMobileOpen(false)}
+                  className="text-white text-center py-3 border border-white/20 rounded-xl font-medium text-sm hover:border-white/40 transition-colors"
+                >
+                  Iniciar sesión
+                </a>
+                <a
+                  href={`${PANEL_URL}/register`}
+                  onClick={() => setMobileOpen(false)}
+                  className="bg-[#25D366] hover:bg-[#20c05a] text-black font-semibold text-sm py-3 rounded-xl transition-colors text-center"
+                >
+                  Empezar gratis
+                </a>
+              </div>
             </div>
           </motion.div>
         )}

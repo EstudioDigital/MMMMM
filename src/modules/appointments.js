@@ -2,6 +2,8 @@
 
 import { PrismaClient } from '@prisma/client';
 import { sendWhatsAppMessage } from '../utils/whatsapp.js';
+import { notifyOwner } from '../utils/notifyOwner.js';
+import { decrypt } from '../utils/crypto.js';
 
 const prisma = new PrismaClient();
 
@@ -33,37 +35,69 @@ function formatDatetimeLong(dt) {
   return `${WEEKDAYS_LONG[ar.getUTCDay()]} ${ar.getUTCDate()} de ${MONTHS_LONG[ar.getUTCMonth()]} a las ${pad2(ar.getUTCHours())}:${pad2(ar.getUTCMinutes())}`;
 }
 
+const DEFAULT_HOURS = [
+  { dayOfWeek: 0, isOpen: false, openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+  { dayOfWeek: 1, isOpen: true,  openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+  { dayOfWeek: 2, isOpen: true,  openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+  { dayOfWeek: 3, isOpen: true,  openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+  { dayOfWeek: 4, isOpen: true,  openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+  { dayOfWeek: 5, isOpen: true,  openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+  { dayOfWeek: 6, isOpen: false, openTime: '09:00', closeTime: '18:00', slotDuration: 60 },
+];
+
 /**
- * Genera los próximos N slots disponibles (lun–vie, 9–17hs, cada hora)
- * excluyendo los ya reservados en la DB.
+ * Lee horarios desde la DB y genera los próximos N slots disponibles.
+ * Si el account no tiene horarios configurados usa defaults (lun–vie 9–18hs, 60 min).
  */
 async function getAvailableSlots(accountId, count = 6) {
   const now = new Date();
   const horizon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
+  let businessHours = await prisma.businessHours.findMany({ where: { accountId } });
+  if (!businessHours.length) businessHours = DEFAULT_HOURS;
+  const hoursMap = new Map(businessHours.map((h) => [h.dayOfWeek, h]));
+
   const existing = await prisma.appointment.findMany({
     where: { accountId, datetime: { gte: now, lte: horizon }, status: 'confirmed' },
     select: { datetime: true },
   });
-
   const booked = new Set(existing.map((a) => a.datetime.toISOString()));
-
-  // Cursor al próximo límite de hora en UTC
-  const cursor = new Date(now.getTime() + 60 * 60 * 1000);
-  cursor.setUTCMinutes(0, 0, 0);
 
   const slots = [];
 
-  while (slots.length < count && cursor <= horizon) {
-    const ar = toAR(cursor);
-    const arDay  = ar.getUTCDay();
-    const arHour = ar.getUTCHours();
+  // Iterar por días del calendario AR (UTC-3)
+  const nowAR = toAR(now);
+  let arYear = nowAR.getUTCFullYear();
+  let arMonth = nowAR.getUTCMonth();
+  let arDate = nowAR.getUTCDate();
 
-    if (arDay >= 1 && arDay <= 5 && arHour >= 9 && arHour <= 17 && !booked.has(cursor.toISOString())) {
-      slots.push(new Date(cursor));
+  while (slots.length < count) {
+    const dayStart = new Date(Date.UTC(arYear, arMonth, arDate));
+    if (dayStart > horizon) break;
+
+    const config = hoursMap.get(dayStart.getUTCDay());
+    if (config?.isOpen) {
+      const [openH, openM] = config.openTime.split(':').map(Number);
+      const [closeH, closeM] = config.closeTime.split(':').map(Number);
+      const duration = config.slotDuration;
+      let slotMins = openH * 60 + openM;
+      const closeMins = closeH * 60 + closeM;
+
+      while (slotMins < closeMins && slots.length < count) {
+        const h = Math.floor(slotMins / 60);
+        const m = slotMins % 60;
+        // AR es UTC-3 → para convertir AR→UTC sumamos 3 horas
+        const utcDt = new Date(Date.UTC(arYear, arMonth, arDate, h + 3, m, 0, 0));
+        if (utcDt > now && !booked.has(utcDt.toISOString())) slots.push(utcDt);
+        slotMins += duration;
+      }
     }
 
-    cursor.setTime(cursor.getTime() + 60 * 60 * 1000);
+    // Avanzar al siguiente día AR (Date.UTC maneja overflow de mes/año)
+    const next = new Date(Date.UTC(arYear, arMonth, arDate + 1));
+    arYear  = next.getUTCFullYear();
+    arMonth = next.getUTCMonth();
+    arDate  = next.getUTCDate();
   }
 
   return slots;
@@ -102,10 +136,15 @@ export function scheduleReminder(appointment, account) {
       const client_ = await prisma.client.findUnique({ where: { id: appt.clientId } });
       if (!client_) return;
 
+      let reminderToken = process.env.META_ACCESS_TOKEN
+      if (account.waToken) {
+        try { reminderToken = decrypt(account.waToken) } catch { reminderToken = account.waToken }
+      }
+
       await sendWhatsAppMessage({
         to: client_.phone,
         phoneNumberId: account.phoneNumberId,
-        token: account.waToken,
+        token: reminderToken,
         message: {
           type: 'template',
           templateName: 'appointment_reminder',
@@ -202,6 +241,10 @@ export async function handleAppointment(intent, message, account, client_) {
 
     scheduleReminder(appointment, account);
 
+    notifyOwner(account, { type: 'NEW_APPOINTMENT', client: client_, appointment }).catch((err) =>
+      console.error('[appointments] Error notificando al dueño:', err.message),
+    )
+
     return {
       type: 'text',
       body: `¡Turno confirmado! Te esperamos el ${formatDatetimeLong(selectedSlot)}. Si necesitás cancelar, escribí "cancelar turno".`,
@@ -217,6 +260,10 @@ export async function handleAppointment(intent, message, account, client_) {
     }
 
     await prisma.appointment.update({ where: { id: appt.id }, data: { status: 'cancelled' } });
+
+    notifyOwner(account, { type: 'CANCELLED_APPOINTMENT', client: client_, appointment: appt }).catch((err) =>
+      console.error('[appointments] Error notificando cancelación:', err.message),
+    )
 
     return { type: 'text', body: `Tu turno del ${formatDatetimeLong(new Date(appt.datetime))} fue cancelado. Podés reservar otro cuando quieras.` };
   }

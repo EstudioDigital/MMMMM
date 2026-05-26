@@ -72,6 +72,49 @@ function buildPayload(to, message) {
   }
 }
 
+/** Sube un PDF a Meta y lo envía como documento por WhatsApp */
+export async function sendWhatsAppDocument({ to, phoneNumberId, token, pdfBase64, filename, caption }) {
+  const pdfBuffer = Buffer.from(pdfBase64, 'base64')
+
+  // Paso 1: subir el archivo a Meta Media
+  const form = new FormData()
+  form.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }), filename)
+  form.append('messaging_product', 'whatsapp')
+  form.append('type', 'application/pdf')
+
+  const uploadRes = await fetch(`${GRAPH_URL}/${phoneNumberId}/media`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  })
+
+  if (!uploadRes.ok) {
+    const err = await uploadRes.json().catch(() => ({}))
+    throw new Error(`WhatsApp upload error: ${err?.error?.message ?? `HTTP ${uploadRes.status}`}`)
+  }
+
+  const { id: mediaId } = await uploadRes.json()
+
+  // Paso 2: enviar el documento usando el media_id
+  const sendRes = await fetch(`${GRAPH_URL}/${phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to,
+      type: 'document',
+      document: { id: mediaId, filename, caption },
+    }),
+  })
+
+  if (!sendRes.ok) {
+    const err = await sendRes.json().catch(() => ({}))
+    throw new Error(`WhatsApp document send error: ${err?.error?.message ?? `HTTP ${sendRes.status}`}`)
+  }
+
+  return sendRes.json()
+}
+
 /** Envía un mensaje de WhatsApp y lanza error si Meta responde con fallo */
 export async function sendWhatsAppMessage({ to, phoneNumberId, token, message }) {
   const url = `${GRAPH_URL}/${phoneNumberId}/messages`;

@@ -2,27 +2,18 @@ import OpenAI from 'openai'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
-/**
- * Nivel 3 del brain — Respuesta con IA (GPT-4o mini)
- *
- * Solo se activa cuando ninguna regla ni módulo respondió.
- * Usa el contexto del negocio para generar respuestas coherentes.
- *
- * Costo: ~$0.00015 por 1k tokens input, $0.0006 output
- * Latencia: ~400ms — perfecto para WhatsApp
- */
 export async function aiResponse(message, account, client, history = []) {
-  const systemPrompt = buildSystemPrompt(account, client)
-  const messages     = buildMessages(message, history, systemPrompt)
+  const config = account.aiConfig || {}
+  const temperature = typeof config.temperature === 'number' ? config.temperature : 0.7
+  const max_tokens = config.maxTokens ?? 300
+  const customInstructions = config.customInstructions || ''
+
+  const systemPrompt = buildSystemPrompt(account, client, customInstructions)
+  const messages = buildMessages(message, history, systemPrompt)
 
   try {
     const response = await openai.chat.completions.create(
-      {
-        model: 'gpt-4o-mini',
-        max_tokens: 300,
-        temperature: 0.7,
-        messages,
-      },
+      { model: 'gpt-4o-mini', max_tokens, temperature, messages },
       { timeout: 15000 },
     )
 
@@ -33,7 +24,6 @@ export async function aiResponse(message, account, client, history = []) {
 
   } catch (err) {
     console.error('[AI] Error llamando a GPT-4o mini:', err.message)
-    // Fallback si la IA falla — nunca dejar al cliente sin respuesta
     return {
       type: 'text',
       body: `Hola${client.name ? `, ${client.name}` : ''}! Recibimos tu mensaje. Te respondemos a la brevedad.`,
@@ -41,15 +31,41 @@ export async function aiResponse(message, account, client, history = []) {
   }
 }
 
-// ─── Constructor del historial para OpenAI ────────────────────────────────────
-// OpenAI recibe el system prompt como primer mensaje del array
+function buildSystemPrompt(account, client, customInstructions = '') {
+  const toneDesc = {
+    friendly:  'amigable, cálido y cercano',
+    formal:    'formal, profesional y serio',
+    casual:    'casual, relajado e informal',
+    technical: 'técnico, preciso y detallado',
+  }[account.tone] ?? 'amigable, cálido y cercano'
+
+  let prompt = `Sos el asistente de WhatsApp de "${account.name}". Tu tono debe ser ${toneDesc}.`
+
+  if (account.businessInfo) {
+    prompt += `\n\nInformación del negocio:\n${account.businessInfo}`
+  }
+
+  if (account.faq) {
+    prompt += `\n\nPreguntas frecuentes:\n${account.faq}`
+  }
+
+  if (client?.name) {
+    prompt += `\n\nEstás hablando con: ${client.name}.`
+  }
+
+  prompt += '\n\nSé breve y útil. Respondé en español rioplatense. Nunca inventes precios ni fechas que no se mencionaron explícitamente.'
+
+  if (customInstructions) {
+    prompt += `\n\nINSTRUCCIONES ESPECIALES:\n${customInstructions}`
+  }
+
+  return prompt
+}
 
 function buildMessages(currentMessage, history, systemPrompt) {
-  const messages = [
-    { role: 'system', content: systemPrompt }
-  ]
+  const messages = [{ role: 'system', content: systemPrompt }]
 
-  // Historial reciente en orden cronológico (más viejo primero)
+  // Historial en orden cronológico (más viejo primero)
   const sorted = [...history].reverse()
   for (const h of sorted) {
     if (!h.body || h.body.startsWith('[')) continue
@@ -59,11 +75,6 @@ function buildMessages(currentMessage, history, systemPrompt) {
     })
   }
 
-  // Mensaje actual
-  messages.push({
-    role: 'user',
-    content: currentMessage.body || '',
-  })
-
+  messages.push({ role: 'user', content: currentMessage.body || '' })
   return messages
 }

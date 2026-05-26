@@ -10,6 +10,7 @@ import Appointments from './pages/Appointments.jsx'
 import Rules from './pages/Rules.jsx'
 import Clients from './pages/Clients.jsx'
 import Settings from './pages/Settings.jsx'
+import Reports from './pages/Reports.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import ForgotPassword from './pages/ForgotPassword.jsx'
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="rules"        element={<Rules />} />
             <Route path="clients"      element={<Clients />} />
             <Route path="settings"     element={<Settings />} />
+            <Route path="reports"      element={<Reports />} />
           </Route>
         </Route>
 
